@@ -31,7 +31,7 @@
 @for (k of store.kids(); track k.id) {
   <section class="card kid" [style.--kid]="k.colour" [class.open]="expanded() === k.id">
     <button class="kid-header" (click)="toggleExpanded(k.id)">
-      <span class="avatar">{{ k.emoji }}</span>
+      <span class="avatar"><app-avatar [value]="k.emoji" /></span>
       <span class="title">
         <span class="name">{{ k.name }}</span>
         <span class="sub">{{ chores(k, 'daily').length }} daily · {{ chores(k, 'weekly').length }} weekly</span>
@@ -45,11 +45,10 @@
         <input type="text" [value]="k.name" (change)="store.patchKid(k.id, { name: value($event) })" />
 
         <label>Avatar</label>
-        <div class="chips">
-          @for (e of kidEmojis; track e) {
-            <button class="chip" [class.selected]="e === k.emoji" (click)="store.patchKid(k.id, { emoji: e })">{{ e }}</button>
-          }
-        </div>
+        <button class="avatar-pick" (click)="picker.set({ kind: 'avatar', kidId: k.id })">
+          <span class="big"><app-avatar [value]="k.emoji" /></span>
+          <span class="change">Change avatar</span>
+        </button>
 
         <label>Colour</label>
         <div class="chips">
@@ -67,7 +66,7 @@
         <h3>Daily chores <small>every day, Mon to Sun</small></h3>
         @for (c of chores(k, 'daily'); track c.id) {
           <div class="chore-row">
-            <button class="emoji" title="Tap to change" (click)="cycleEmoji(k, c.id, c.emoji)">{{ c.emoji }}</button>
+            <button class="emoji" title="Change emoji" (click)="picker.set({ kind: 'chore', kidId: k.id, choreId: c.id })">{{ c.emoji }}</button>
             <input type="text" [value]="c.name" (change)="store.patchChore(k.id, c.id, { name: value($event) })" />
             <button class="remove" aria-label="Remove chore" (click)="store.removeChore(k.id, c.id)">✕</button>
           </div>
@@ -80,7 +79,7 @@
         <h3>Weekly chores <small>once a week</small></h3>
         @for (c of chores(k, 'weekly'); track c.id) {
           <div class="chore-row">
-            <button class="emoji" title="Tap to change" (click)="cycleEmoji(k, c.id, c.emoji)">{{ c.emoji }}</button>
+            <button class="emoji" title="Change emoji" (click)="picker.set({ kind: 'chore', kidId: k.id, choreId: c.id })">{{ c.emoji }}</button>
             <input type="text" [value]="c.name" (change)="store.patchChore(k.id, c.id, { name: value($event) })" />
             <button class="remove" aria-label="Remove chore" (click)="store.removeChore(k.id, c.id)">✕</button>
           </div>
@@ -89,7 +88,7 @@
           <input #weeklyInput type="text" placeholder="Add a weekly chore" enterkeyhint="done" (keydown.enter)="addChore(k, 'weekly', weeklyInput)" />
           <button class="btn" (click)="addChore(k, 'weekly', weeklyInput)">Add</button>
         </div>
-        <p class="tip">Tip: tap a chore's emoji to change it.</p>
+        <p class="tip">Tip: tap a chore's emoji to pick a different one.</p>
 
         <div class="actions">
           <button class="btn ghost" (click)="clearWeek(k)">
@@ -104,4 +103,14 @@
   </section>
 } @empty {
   <p class="muted">No kids yet. Add one above to get started.</p>
+}
+
+@if (picker(); as p) {
+  <app-emoji-picker
+    [title]="p.kind === 'avatar' ? 'Pick an avatar' : 'Pick an emoji'"
+    [groups]="p.kind === 'avatar' ? avatarGroups : choreGroups"
+    [selected]="pickerSelected()"
+    (pick)="onPick($event)"
+    (closed)="picker.set(null)"
+  />
 }

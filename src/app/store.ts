@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AppState, Chore, ChoreKind, KID_COLOURS, KID_EMOJIS, Kid, guessEmoji } from './models';
+import { AppState, Chore, ChoreKind, KID_AVATARS, KID_COLOURS, Kid, guessEmoji } from './models';
 import { addDays, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
@@ -75,7 +75,7 @@ export class ChoreStore {
     const kid: Kid = {
       id: uid(),
       name: name.trim(),
-      emoji: KID_EMOJIS[n % KID_EMOJIS.length],
+      emoji: KID_AVATARS[n % KID_AVATARS.length],
       colour: KID_COLOURS[n % KID_COLOURS.length],
       prize: '',
       prizeThreshold: 80,

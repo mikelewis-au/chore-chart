@@ -1,0 +1,149 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 10, 50, 0.45);
+  animation: fade 0.15s ease-out;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  max-height: 80vh;
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: 24px 24px 0 0;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(40, 10, 70, 0.25);
+  animation: rise 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 1.15rem;
+  }
+}
+
+.close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: #f1ecf9;
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.search {
+  width: 100%;
+  min-height: 44px;
+  margin: 0.6rem 0;
+  padding: 0.4rem 0.8rem;
+  border: 2px solid #e6e0f2;
+  border-radius: 12px;
+  background: #faf8ff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  -webkit-appearance: none;
+  appearance: none;
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 0.5rem;
+}
+
+h3 {
+  margin: 0.6rem 0 0.4rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 0.4rem;
+}
+
+.cell {
+  aspect-ratio: 1;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 3px solid transparent;
+  background: #f5f1fb;
+  font-size: 1.7rem;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  &.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, white);
+  }
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.none {
+  color: var(--muted);
+  text-align: center;
+  font-weight: 700;
+  padding: 1.5rem 0;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 700px) {
+  :host {
+    align-items: center;
+    padding: 1rem;
+  }
+  .sheet {
+    border-radius: 24px;
+    max-height: 75vh;
+  }
+}

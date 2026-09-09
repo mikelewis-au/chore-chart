@@ -1,19 +1,26 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { ChoreStore } from '../store';
-import { CHORE_EMOJIS, ChoreKind, KID_COLOURS, KID_EMOJIS, Kid, guessEmoji, nextEmoji } from '../models';
+import { AVATAR_GROUPS, CHORE_GROUPS, ChoreKind, KID_COLOURS, Kid, guessEmoji } from '../models';
+import { Avatar } from '../avatar/avatar';
+import { EmojiPicker } from '../emoji-picker/emoji-picker';
 import { startOfWeek } from '../week';
 import { party } from '../sounds';
 
+type PickerTarget = { kind: 'avatar'; kidId: string } | { kind: 'chore'; kidId: string; choreId: string };
+
 @Component({
   selector: 'app-settings',
+  imports: [Avatar, EmojiPicker],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
 export class Settings {
   readonly store = inject(ChoreStore);
-  readonly kidEmojis = KID_EMOJIS;
   readonly kidColours = KID_COLOURS;
-  readonly choreEmojis = CHORE_EMOJIS;
+  readonly avatarGroups = AVATAR_GROUPS;
+  readonly choreGroups = CHORE_GROUPS;
+
+  readonly picker = signal<PickerTarget | null>(null);
 
   readonly newKidName = signal('');
   readonly expanded = signal<string | null>(this.store.activeKid()?.id ?? null);
@@ -51,8 +58,19 @@ export class Settings {
     input.focus();
   }
 
-  cycleEmoji(kid: Kid, choreId: string, current: string): void {
-    this.store.patchChore(kid.id, choreId, { emoji: nextEmoji(current) });
+  pickerSelected(): string {
+    const p = this.picker();
+    if (!p) return '';
+    const kid = this.store.kids().find((k) => k.id === p.kidId);
+    return p.kind === 'avatar' ? (kid?.emoji ?? '') : (kid?.chores.find((c) => c.id === p.choreId)?.emoji ?? '');
+  }
+
+  onPick(value: string): void {
+    const p = this.picker();
+    if (!p) return;
+    if (p.kind === 'avatar') this.store.patchKid(p.kidId, { emoji: value });
+    else this.store.patchChore(p.kidId, p.choreId, { emoji: value });
+    this.picker.set(null);
   }
 
   chores(kid: Kid, kind: ChoreKind) {

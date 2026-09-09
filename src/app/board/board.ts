@@ -1,5 +1,6 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Avatar } from '../avatar/avatar';
 import { ChoreStore } from '../store';
 import { Chore } from '../models';
 import { DAY_LABELS, DAY_NAMES, dayIndex, startOfWeek, toISODate, weekDates } from '../week';
@@ -7,7 +8,7 @@ import { celebrate, cheer } from '../confetti';
 
 @Component({
   selector: 'app-board',
-  imports: [RouterLink],
+  imports: [RouterLink, Avatar],
   templateUrl: './board.html',
   styleUrl: './board.scss',
 })

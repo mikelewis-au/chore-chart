@@ -1,0 +1,30 @@
+<div class="backdrop" (click)="closed.emit()"></div>
+<div class="sheet" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+  <header>
+    <h2>{{ title() }}</h2>
+    <button class="close" aria-label="Close" (click)="closed.emit()">✕</button>
+  </header>
+  <input
+    class="search"
+    type="search"
+    placeholder="Search…"
+    autocomplete="off"
+    enterkeyhint="search"
+    [value]="query()"
+    (input)="query.set($any($event.target).value)"
+  />
+  <div class="scroll">
+    @for (g of filtered(); track g.label) {
+      <h3>{{ g.label }}</h3>
+      <div class="grid">
+        @for (item of g.items; track item.value) {
+          <button class="cell" [class.selected]="item.value === selected()" [title]="item.label" (click)="pick.emit(item.value)">
+            <app-avatar [value]="item.value" />
+          </button>
+        }
+      </div>
+    } @empty {
+      <p class="none">Nothing matches "{{ query() }}".</p>
+    }
+  </div>
+</div>

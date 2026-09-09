@@ -179,7 +179,34 @@ input[type='range'] {
   gap: 0.4rem;
 }
 
-.chip,
+.avatar-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.4rem 1rem 0.4rem 0.4rem;
+  border: 2px solid #e6e0f2;
+  border-radius: 999px;
+  background: #faf8ff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: var(--tap);
+  .big {
+    font-size: 2rem;
+    line-height: 1;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--kid) 20%, white);
+  }
+  .change {
+    color: var(--kid, var(--accent));
+  }
+}
+
 .swatch {
   width: 44px;
   height: 44px;

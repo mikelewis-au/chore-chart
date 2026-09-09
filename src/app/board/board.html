@@ -10,7 +10,7 @@
   <header class="kids" [class.single]="store.kids().length === 1">
     @for (k of store.kids(); track k.id) {
       <button class="kid" [class.active]="k.id === kid()?.id" [style.--kid]="k.colour" (click)="store.setActiveKid(k.id)">
-        <span class="avatar">{{ k.emoji }}</span>
+        <span class="avatar"><app-avatar [value]="k.emoji" /></span>
         <span class="name">{{ k.name }}</span>
       </button>
     }
