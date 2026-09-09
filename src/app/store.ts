@@ -17,7 +17,7 @@ function uid(): string {
 }
 
 function emptyState(): AppState {
-  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: false };
+  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true };
 }
 
 function load(): AppState {
@@ -26,7 +26,7 @@ function load(): AppState {
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.version !== 1 || !Array.isArray(parsed.kids)) return emptyState();
-    return { ...parsed, done: prune(parsed.done ?? {}), soundOn: parsed.soundOn ?? false };
+    return { ...parsed, done: prune(parsed.done ?? {}), soundOn: parsed.soundOn ?? true };
   } catch {
     return emptyState();
   }
