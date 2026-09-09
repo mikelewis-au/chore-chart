@@ -1,59 +1,33 @@
-# ChoreChart
+# Chore Chart
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.7.
+A small, fun weekly chore chart for kids. Runs as an installable web app (PWA), stores everything locally on the device, and needs no account or server.
 
-## Development server
+Live: https://mikelewis-au.github.io/chore-chart/
 
-To start a local development server, run:
+## Features
 
-```bash
-ng serve
+- Multiple kids, one tap to switch between them
+- Daily chores (every day, Monday to Sunday) and weekly chores per kid
+- Weekly prize with a percentage goal; the week starts on Monday
+- Tap a day to catch up on earlier days this week
+- Random celebrations when a chore is ticked, and a big one when the prize unlocks
+- Mobile first, scales up to a two-column layout on iPad
+- Works offline once installed
+
+## Install on a phone
+
+Open the live URL in Safari (iOS) or Chrome (Android), then use **Share → Add to Home Screen** (iOS) or **Install app** (Android).
+
+## Develop
+
+```sh
+npm install
+npm start          # http://localhost:4200
+npm run build:pages
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Pushes to `main` deploy to GitHub Pages via `.github/workflows/deploy.yml`.
 
-## Code scaffolding
+## Data
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Everything lives in `localStorage` under the key `chore-chart.v1`. Clearing site data resets the app.

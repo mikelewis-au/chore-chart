@@ -1,0 +1,96 @@
+<h1>Settings</h1>
+
+<section class="card add-kid">
+  <label for="new-kid">Add a kid</label>
+  <div class="row">
+    <input
+      id="new-kid"
+      type="text"
+      placeholder="Name"
+      autocomplete="off"
+      enterkeyhint="done"
+      [value]="newKidName()"
+      (input)="newKidName.set(value($event))"
+      (keydown.enter)="addKid()"
+    />
+    <button class="btn primary" (click)="addKid()" [disabled]="!newKidName().trim()">Add</button>
+  </div>
+</section>
+
+@for (k of store.kids(); track k.id) {
+  <section class="card kid" [style.--kid]="k.colour" [class.open]="expanded() === k.id">
+    <button class="kid-header" (click)="toggleExpanded(k.id)">
+      <span class="avatar">{{ k.emoji }}</span>
+      <span class="title">
+        <span class="name">{{ k.name }}</span>
+        <span class="sub">{{ chores(k, 'daily').length }} daily · {{ chores(k, 'weekly').length }} weekly</span>
+      </span>
+      <span class="chevron">{{ expanded() === k.id ? '▾' : '▸' }}</span>
+    </button>
+
+    @if (expanded() === k.id) {
+      <div class="body">
+        <label>Name</label>
+        <input type="text" [value]="k.name" (change)="store.patchKid(k.id, { name: value($event) })" />
+
+        <label>Avatar</label>
+        <div class="chips">
+          @for (e of kidEmojis; track e) {
+            <button class="chip" [class.selected]="e === k.emoji" (click)="store.patchKid(k.id, { emoji: e })">{{ e }}</button>
+          }
+        </div>
+
+        <label>Colour</label>
+        <div class="chips">
+          @for (c of kidColours; track c) {
+            <button class="swatch" [style.background]="c" [class.selected]="c === k.colour" (click)="store.patchKid(k.id, { colour: c })"></button>
+          }
+        </div>
+
+        <label>This week's prize</label>
+        <input type="text" placeholder="e.g. Movie night 🍿" [value]="k.prize" (change)="store.patchKid(k.id, { prize: value($event) })" />
+
+        <label>Prize goal: <strong>{{ k.prizeThreshold }}%</strong> of the week's chores</label>
+        <input type="range" min="50" max="100" step="5" [value]="k.prizeThreshold" (input)="store.patchKid(k.id, { prizeThreshold: +value($event) })" />
+
+        <h3>Daily chores <small>every day, Mon to Sun</small></h3>
+        @for (c of chores(k, 'daily'); track c.id) {
+          <div class="chore-row">
+            <button class="emoji" title="Tap to change" (click)="cycleEmoji(k, c.id, c.emoji)">{{ c.emoji }}</button>
+            <input type="text" [value]="c.name" (change)="store.patchChore(k.id, c.id, { name: value($event) })" />
+            <button class="remove" aria-label="Remove chore" (click)="store.removeChore(k.id, c.id)">✕</button>
+          </div>
+        }
+        <div class="row">
+          <input #dailyInput type="text" placeholder="Add a daily chore" enterkeyhint="done" (keydown.enter)="addChore(k, 'daily', dailyInput)" />
+          <button class="btn" (click)="addChore(k, 'daily', dailyInput)">Add</button>
+        </div>
+
+        <h3>Weekly chores <small>once a week</small></h3>
+        @for (c of chores(k, 'weekly'); track c.id) {
+          <div class="chore-row">
+            <button class="emoji" title="Tap to change" (click)="cycleEmoji(k, c.id, c.emoji)">{{ c.emoji }}</button>
+            <input type="text" [value]="c.name" (change)="store.patchChore(k.id, c.id, { name: value($event) })" />
+            <button class="remove" aria-label="Remove chore" (click)="store.removeChore(k.id, c.id)">✕</button>
+          </div>
+        }
+        <div class="row">
+          <input #weeklyInput type="text" placeholder="Add a weekly chore" enterkeyhint="done" (keydown.enter)="addChore(k, 'weekly', weeklyInput)" />
+          <button class="btn" (click)="addChore(k, 'weekly', weeklyInput)">Add</button>
+        </div>
+        <p class="tip">Tip: tap a chore's emoji to change it.</p>
+
+        <div class="actions">
+          <button class="btn ghost" (click)="clearWeek(k)">
+            {{ confirming() === 'week:' + k.id ? 'Tap again to clear' : "Clear this week's ticks" }}
+          </button>
+          <button class="btn danger" (click)="removeKid(k)">
+            {{ confirming() === 'kid:' + k.id ? 'Tap again to remove' : 'Remove ' + k.name }}
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+} @empty {
+  <p class="muted">No kids yet. Add one above to get started.</p>
+}

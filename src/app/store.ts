@@ -1,0 +1,173 @@
+import { Injectable, computed, effect, signal } from '@angular/core';
+import { AppState, Chore, ChoreKind, KID_COLOURS, KID_EMOJIS, Kid, guessEmoji } from './models';
+import { addDays, startOfWeek, toISODate, weekDates } from './week';
+
+const STORAGE_KEY = 'chore-chart.v1';
+
+export interface WeekStats {
+  total: number;
+  done: number;
+  pct: number;
+  unlocked: boolean;
+  needed: number;
+}
+
+function uid(): string {
+  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+function emptyState(): AppState {
+  return { version: 1, kids: [], activeKidId: null, done: {} };
+}
+
+function load(): AppState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyState();
+    const parsed = JSON.parse(raw) as AppState;
+    if (parsed.version !== 1 || !Array.isArray(parsed.kids)) return emptyState();
+    return { ...parsed, done: prune(parsed.done ?? {}) };
+  } catch {
+    return emptyState();
+  }
+}
+
+// Completion keys end in a YYYY-MM-DD date; drop anything older than 8 weeks.
+function prune(done: Record<string, true>): Record<string, true> {
+  const cutoff = toISODate(addDays(startOfWeek(new Date()), -56));
+  return Object.fromEntries(Object.entries(done).filter(([k]) => k.slice(-10) >= cutoff)) as Record<string, true>;
+}
+
+function save(state: AppState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full or unavailable; nothing useful to do in a prototype.
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ChoreStore {
+  private readonly state = signal<AppState>(load());
+
+  readonly kids = computed(() => this.state().kids);
+  readonly done = computed(() => this.state().done);
+  readonly activeKid = computed(() => {
+    const s = this.state();
+    return s.kids.find((k) => k.id === s.activeKidId) ?? s.kids[0] ?? null;
+  });
+
+  constructor() {
+    effect(() => save(this.state()));
+  }
+
+  setActiveKid(id: string): void {
+    this.state.update((s) => ({ ...s, activeKidId: id }));
+  }
+
+  addKid(name: string): Kid {
+    const n = this.state().kids.length;
+    const kid: Kid = {
+      id: uid(),
+      name: name.trim(),
+      emoji: KID_EMOJIS[n % KID_EMOJIS.length],
+      colour: KID_COLOURS[n % KID_COLOURS.length],
+      prize: '',
+      prizeThreshold: 80,
+      chores: [],
+    };
+    this.state.update((s) => ({ ...s, kids: [...s.kids, kid], activeKidId: s.activeKidId ?? kid.id }));
+    return kid;
+  }
+
+  patchKid(id: string, patch: Partial<Omit<Kid, 'id' | 'chores'>>): void {
+    this.updateKid(id, (k) => ({ ...k, ...patch }));
+  }
+
+  removeKid(id: string): void {
+    this.state.update((s) => {
+      const kids = s.kids.filter((k) => k.id !== id);
+      const done = Object.fromEntries(Object.entries(s.done).filter(([key]) => !key.startsWith(`${id}|`))) as Record<string, true>;
+      return { ...s, kids, done, activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId };
+    });
+  }
+
+  addChore(kidId: string, kind: ChoreKind, name: string, emoji: string): void {
+    const chore: Chore = { id: uid(), name: name.trim(), emoji, kind };
+    this.updateKid(kidId, (k) => ({ ...k, chores: [...k.chores, chore] }));
+  }
+
+  patchChore(kidId: string, choreId: string, patch: Partial<Omit<Chore, 'id'>>): void {
+    this.updateKid(kidId, (k) => ({ ...k, chores: k.chores.map((c) => (c.id === choreId ? { ...c, ...patch } : c)) }));
+  }
+
+  removeChore(kidId: string, choreId: string): void {
+    this.updateKid(kidId, (k) => ({ ...k, chores: k.chores.filter((c) => c.id !== choreId) }));
+  }
+
+  dailyKey(kidId: string, choreId: string, day: Date): string {
+    return `${kidId}|${choreId}|d:${toISODate(day)}`;
+  }
+
+  weeklyKey(kidId: string, choreId: string, monday: Date): string {
+    return `${kidId}|${choreId}|w:${toISODate(monday)}`;
+  }
+
+  isDone(key: string): boolean {
+    return !!this.done()[key];
+  }
+
+  toggle(key: string): boolean {
+    const nowDone = !this.isDone(key);
+    this.state.update((s) => {
+      const done = { ...s.done };
+      if (nowDone) done[key] = true;
+      else delete done[key];
+      return { ...s, done };
+    });
+    return nowDone;
+  }
+
+  clearWeek(kidId: string, monday: Date): void {
+    const keys = new Set(this.weekKeys(this.kids().find((k) => k.id === kidId), monday));
+    this.state.update((s) => ({
+      ...s,
+      done: Object.fromEntries(Object.entries(s.done).filter(([key]) => !keys.has(key))) as Record<string, true>,
+    }));
+  }
+
+  weekStats(kid: Kid, monday: Date): WeekStats {
+    const keys = this.weekKeys(kid, monday);
+    const done = this.done();
+    const total = keys.length;
+    const doneCount = keys.filter((k) => done[k]).length;
+    const pct = total ? Math.round((doneCount / total) * 100) : 0;
+    const target = Math.ceil((kid.prizeThreshold / 100) * total);
+    return { total, done: doneCount, pct, unlocked: total > 0 && doneCount >= target, needed: Math.max(0, target - doneCount) };
+  }
+
+  seedExample(): void {
+    const sam = this.addKid('Sam');
+    const ava = this.addKid('Ava');
+    const daily = ['Make bed', 'Brush teeth', 'Tidy room'];
+    const weekly = ['Empty the bins', 'Water the plants'];
+    for (const kid of [sam, ava]) {
+      daily.forEach((n) => this.addChore(kid.id, 'daily', n, guessEmoji(n)));
+      weekly.forEach((n) => this.addChore(kid.id, 'weekly', n, guessEmoji(n)));
+    }
+    this.patchKid(sam.id, { prize: 'Movie night 🍿' });
+    this.patchKid(ava.id, { prize: 'Ice cream trip 🍦' });
+  }
+
+  private weekKeys(kid: Kid | undefined, monday: Date): string[] {
+    if (!kid) return [];
+    const days = weekDates(monday);
+    return kid.chores.flatMap((c) =>
+      c.kind === 'daily' ? days.map((d) => this.dailyKey(kid.id, c.id, d)) : [this.weeklyKey(kid.id, c.id, monday)],
+    );
+  }
+
+  private updateKid(id: string, fn: (k: Kid) => Kid): void {
+    this.state.update((s) => ({ ...s, kids: s.kids.map((k) => (k.id === id ? fn(k) : k)) }));
+  }
+}

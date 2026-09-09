@@ -1,0 +1,93 @@
+@if (store.kids().length === 0) {
+  <section class="empty">
+    <div class="hero">🧹✨</div>
+    <h1>Chore Chart</h1>
+    <p>Add your kids and their chores, pick a prize for the week, and tick things off as they go.</p>
+    <a routerLink="/settings" class="btn primary">Set up kids</a>
+    <button class="btn ghost" (click)="store.seedExample()">Try an example</button>
+  </section>
+} @else {
+  <header class="kids" [class.single]="store.kids().length === 1">
+    @for (k of store.kids(); track k.id) {
+      <button class="kid" [class.active]="k.id === kid()?.id" [style.--kid]="k.colour" (click)="store.setActiveKid(k.id)">
+        <span class="avatar">{{ k.emoji }}</span>
+        <span class="name">{{ k.name }}</span>
+      </button>
+    }
+  </header>
+
+  @if (kid(); as k) {
+    @if (stats(); as s) {
+      <section class="card prize" [style.--kid]="k.colour" [class.unlocked]="s.unlocked">
+        <div class="prize-row">
+          <span class="gift">{{ s.unlocked ? '🏆' : '🎁' }}</span>
+          <div class="prize-text">
+            <div class="label">{{ s.unlocked ? 'Prize unlocked!' : "This week's prize" }}</div>
+            <div class="prize-name">{{ k.prize || 'No prize set yet' }}</div>
+          </div>
+          <div class="pct">{{ s.pct }}<small>%</small></div>
+        </div>
+        <div class="bar">
+          <div class="fill" [style.width.%]="s.pct"></div>
+          <div class="goal" [style.left.%]="k.prizeThreshold" [title]="'Goal ' + k.prizeThreshold + '%'"></div>
+        </div>
+        <div class="hint">
+          @if (s.total === 0) {
+            Add some chores in settings to get going.
+          } @else if (s.unlocked) {
+            🎉 Amazing work, {{ k.name }}! You've earned it.
+          } @else {
+            {{ s.needed }} more {{ s.needed === 1 ? 'chore' : 'chores' }} to reach {{ k.prizeThreshold }}% and win the prize.
+          }
+        </div>
+      </section>
+    }
+
+    <nav class="days" [style.--kid]="k.colour">
+      @for (d of days(); track $index) {
+        <button
+          class="day"
+          [class.today]="isToday(d)"
+          [class.selected]="isSelected(d)"
+          [class.complete]="dayDone(d)"
+          [disabled]="isFuture(d)"
+          (click)="selectedDay.set(d)"
+        >
+          <span class="label">{{ dayLabels[$index] }}</span>
+          <span class="num">{{ d.getDate() }}</span>
+          @if (dayDone(d)) {
+            <span class="tick">✓</span>
+          }
+        </button>
+      }
+    </nav>
+
+    <div class="columns" [style.--kid]="k.colour">
+      <section class="card list">
+        <h2>{{ dayTitle() }}</h2>
+        @for (c of daily(); track c.id) {
+          <button class="chore" [class.done]="store.isDone(key(c))" (click)="toggle(c, $event)">
+            <span class="check">✓</span>
+            <span class="emoji">{{ c.emoji }}</span>
+            <span class="text">{{ c.name }}</span>
+          </button>
+        } @empty {
+          <p class="muted">No daily chores yet. <a routerLink="/settings">Add some</a>.</p>
+        }
+      </section>
+
+      <section class="card list">
+        <h2>This week</h2>
+        @for (c of weekly(); track c.id) {
+          <button class="chore" [class.done]="store.isDone(key(c))" (click)="toggle(c, $event)">
+            <span class="check">✓</span>
+            <span class="emoji">{{ c.emoji }}</span>
+            <span class="text">{{ c.name }}</span>
+          </button>
+        } @empty {
+          <p class="muted">No weekly chores yet. <a routerLink="/settings">Add some</a>.</p>
+        }
+      </section>
+    </div>
+  }
+}
