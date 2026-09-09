@@ -22,6 +22,7 @@ export interface AppState {
   kids: Kid[];
   activeKidId: string | null;
   done: Record<string, true>;
+  soundOn: boolean;
 }
 
 export const KID_EMOJIS = ['🦄', '🦖', '🐼', '🦊', '🐸', '🐯', '🐨', '🦁', '🐙', '🐧', '🦋', '🚀'];

@@ -1,5 +1,16 @@
 <h1>Settings</h1>
 
+<section class="card sound">
+  <label class="switch" for="sound-toggle">
+    <span class="switch-text">
+      <span class="switch-title">🔊 Sound effects</span>
+      <span class="switch-sub">Play a sound with each celebration</span>
+    </span>
+    <input id="sound-toggle" type="checkbox" role="switch" [checked]="store.soundOn()" (change)="setSound($any($event.target).checked)" />
+    <span class="track" aria-hidden="true"></span>
+  </label>
+</section>
+
 <section class="card add-kid">
   <label for="new-kid">Add a kid</label>
   <div class="row">

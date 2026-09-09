@@ -1,4 +1,5 @@
 import confetti from 'canvas-confetti';
+import { boing, boom, chime, fanfare, party, pop, sparkle, whoosh } from './sounds';
 
 type Effect = (x: number, y: number) => void;
 
@@ -36,7 +37,16 @@ const fireworks: Effect = () => {
 const critters: Effect = (x, y) =>
   confetti({ particleCount: 12, spread: 120, startVelocity: 24, scalar: 3, gravity: 0.7, shapes: shapes(['🦄', '🐸', '🦖', '🐼', '🦊'], 3), origin: origin(x, y), zIndex: Z });
 
-const EFFECTS: Effect[] = [classicBurst, starBurst, heartBurst, rocket, streamers, fireworks, critters];
+// Each animation has a matching sound; the pair is picked at random in cheer().
+const EFFECTS: { fx: Effect; sound: () => void }[] = [
+  { fx: classicBurst, sound: pop },
+  { fx: starBurst, sound: sparkle },
+  { fx: heartBurst, sound: chime },
+  { fx: rocket, sound: whoosh },
+  { fx: streamers, sound: party },
+  { fx: fireworks, sound: boom },
+  { fx: critters, sound: boing },
+];
 let last = -1;
 
 function praise(x: number, y: number): void {
@@ -51,16 +61,18 @@ function praise(x: number, y: number): void {
 }
 
 // Random effect, never the same one twice in a row, with a praise word most of the time.
-export function cheer(x: number, y: number): void {
+export function cheer(x: number, y: number, sound: boolean): void {
   let i = Math.floor(Math.random() * EFFECTS.length);
   if (i === last) i = (i + 1) % EFFECTS.length;
   last = i;
-  EFFECTS[i](x, y);
+  EFFECTS[i].fx(x, y);
+  if (sound) EFFECTS[i].sound();
   if (Math.random() < 0.7) praise(x, y);
   navigator.vibrate?.(25);
 }
 
-export function celebrate(): void {
+export function celebrate(sound: boolean): void {
+  if (sound) fanfare();
   const stars = shapes(['⭐', '🎉', '🏆'], 3);
   const end = Date.now() + 3000;
   const frame = () => {

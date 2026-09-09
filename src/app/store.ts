@@ -17,7 +17,7 @@ function uid(): string {
 }
 
 function emptyState(): AppState {
-  return { version: 1, kids: [], activeKidId: null, done: {} };
+  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: false };
 }
 
 function load(): AppState {
@@ -26,7 +26,7 @@ function load(): AppState {
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.version !== 1 || !Array.isArray(parsed.kids)) return emptyState();
-    return { ...parsed, done: prune(parsed.done ?? {}) };
+    return { ...parsed, done: prune(parsed.done ?? {}), soundOn: parsed.soundOn ?? false };
   } catch {
     return emptyState();
   }
@@ -52,6 +52,7 @@ export class ChoreStore {
 
   readonly kids = computed(() => this.state().kids);
   readonly done = computed(() => this.state().done);
+  readonly soundOn = computed(() => this.state().soundOn);
   readonly activeKid = computed(() => {
     const s = this.state();
     return s.kids.find((k) => k.id === s.activeKidId) ?? s.kids[0] ?? null;
@@ -59,6 +60,10 @@ export class ChoreStore {
 
   constructor() {
     effect(() => save(this.state()));
+  }
+
+  setSound(on: boolean): void {
+    this.state.update((s) => ({ ...s, soundOn: on }));
   }
 
   setActiveKid(id: string): void {

@@ -85,7 +85,8 @@ export class Board {
     const rect = target.getBoundingClientRect();
     const x = ev.clientX || rect.left + 40;
     const y = ev.clientY || rect.top + rect.height / 2;
-    if (!wasUnlocked && this.stats()?.unlocked) celebrate();
-    else cheer(x, y);
+    const sound = this.store.soundOn();
+    if (!wasUnlocked && this.stats()?.unlocked) celebrate(sound);
+    else cheer(x, y, sound);
   }
 }

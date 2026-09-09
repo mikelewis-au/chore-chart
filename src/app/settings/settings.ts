@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { ChoreStore } from '../store';
 import { CHORE_EMOJIS, ChoreKind, KID_COLOURS, KID_EMOJIS, Kid, guessEmoji, nextEmoji } from '../models';
 import { startOfWeek } from '../week';
+import { party } from '../sounds';
 
 @Component({
   selector: 'app-settings',
@@ -22,6 +23,12 @@ export class Settings {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.confirmTimer));
+  }
+
+  setSound(on: boolean): void {
+    this.store.setSound(on);
+    // Playing inside the tap also unlocks audio on iOS for later chore ticks.
+    if (on) party();
   }
 
   addKid(): void {

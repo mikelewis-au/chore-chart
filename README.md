@@ -11,6 +11,7 @@ Live: https://mikelewis-au.github.io/chore-chart/
 - Weekly prize with a percentage goal; the week starts on Monday
 - Tap a day to catch up on earlier days this week
 - Random celebrations when a chore is ticked, and a big one when the prize unlocks
+- Optional matching sound effects (off by default, toggle in Settings)
 - Mobile first, scales up to a two-column layout on iPad
 - Works offline once installed
 
