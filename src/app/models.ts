@@ -26,6 +26,33 @@ export interface AppState {
   activeKidId: string | null;
   done: Record<string, true>;
   soundOn: boolean;
+  cooldown: CooldownId;
+  lockSettings: boolean;
+  celebrated: Record<string, number>;
+}
+
+export type CooldownId = 'off' | '1m' | '10m' | '1h' | 'once';
+
+export interface CooldownOption {
+  id: CooldownId;
+  label: string;
+  ms: number;
+  hint: string;
+}
+
+// How long before the same chore may celebrate again: 0 replays every tick, Infinity means one celebration ever.
+export const COOLDOWNS: CooldownOption[] = [
+  { id: 'off', label: 'Always', ms: 0, hint: 'Every tick sets off a celebration.' },
+  { id: '1m', label: '1 min', ms: 60_000, hint: 'Re-ticking a chore within a minute stays quiet.' },
+  { id: '10m', label: '10 min', ms: 600_000, hint: 'Re-ticking a chore within ten minutes stays quiet.' },
+  { id: '1h', label: '1 hour', ms: 3_600_000, hint: 'Re-ticking a chore within an hour stays quiet.' },
+  { id: 'once', label: 'Once', ms: Number.POSITIVE_INFINITY, hint: 'Each chore celebrates once and never again.' },
+];
+
+export const DEFAULT_COOLDOWN: CooldownId = '10m';
+
+export function cooldownMs(id: CooldownId): number {
+  return COOLDOWNS.find((c) => c.id === id)?.ms ?? 0;
 }
 
 export const KID_COLOURS = ['#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];

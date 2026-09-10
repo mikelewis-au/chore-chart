@@ -94,6 +94,53 @@ label {
   }
 }
 
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  .switch-title {
+    font-size: 1.1rem;
+    font-weight: 900;
+  }
+  .switch-sub {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .tip {
+    margin-top: 0.5rem;
+  }
+}
+
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+
+  .seg {
+    flex: 1 1 4rem;
+    min-height: 44px;
+    padding: 0.4rem 0.6rem;
+    border: 2px solid #e6e0f2;
+    border-radius: 12px;
+    background: #faf8ff;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    &.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+}
+
 .row {
   display: flex;
   gap: 0.5rem;

@@ -1,8 +1,11 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AppState, Chore, ChoreKind, KID_AVATARS, KID_COLOURS, Kid, guessEmoji } from './models';
+import { AppState, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, KID_AVATARS, KID_COLOURS, Kid, cooldownMs, guessEmoji } from './models';
 import { addDays, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
+
+// A grown-up who answers the maths question can come and go for this long before being asked again.
+const UNLOCK_GRACE_MS = 5 * 60_000;
 
 export interface WeekStats {
   total: number;
@@ -17,7 +20,7 @@ function uid(): string {
 }
 
 function emptyState(): AppState {
-  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true };
+  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true, cooldown: DEFAULT_COOLDOWN, lockSettings: false, celebrated: {} };
 }
 
 function load(): AppState {
@@ -26,16 +29,23 @@ function load(): AppState {
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.version !== 1 || !Array.isArray(parsed.kids)) return emptyState();
-    return { ...parsed, done: prune(parsed.done ?? {}), soundOn: parsed.soundOn ?? true };
+    return {
+      ...parsed,
+      done: prune(parsed.done ?? {}),
+      soundOn: parsed.soundOn ?? true,
+      cooldown: parsed.cooldown ?? DEFAULT_COOLDOWN,
+      lockSettings: parsed.lockSettings ?? false,
+      celebrated: prune(parsed.celebrated ?? {}),
+    };
   } catch {
     return emptyState();
   }
 }
 
-// Completion keys end in a YYYY-MM-DD date; drop anything older than 8 weeks.
-function prune(done: Record<string, true>): Record<string, true> {
+// Completion and celebration keys end in a YYYY-MM-DD date; drop anything older than 8 weeks.
+function prune<T>(rec: Record<string, T>): Record<string, T> {
   const cutoff = toISODate(addDays(startOfWeek(new Date()), -56));
-  return Object.fromEntries(Object.entries(done).filter(([k]) => k.slice(-10) >= cutoff)) as Record<string, true>;
+  return Object.fromEntries(Object.entries(rec).filter(([k]) => k.slice(-10) >= cutoff)) as Record<string, T>;
 }
 
 function save(state: AppState): void {
@@ -49,10 +59,14 @@ function save(state: AppState): void {
 @Injectable({ providedIn: 'root' })
 export class ChoreStore {
   private readonly state = signal<AppState>(load());
+  // Deliberately not persisted: reopening the app re-arms the lock.
+  private readonly unlockedUntil = signal(0);
 
   readonly kids = computed(() => this.state().kids);
   readonly done = computed(() => this.state().done);
   readonly soundOn = computed(() => this.state().soundOn);
+  readonly cooldown = computed(() => this.state().cooldown);
+  readonly lockSettings = computed(() => this.state().lockSettings);
   readonly activeKid = computed(() => {
     const s = this.state();
     return s.kids.find((k) => k.id === s.activeKidId) ?? s.kids[0] ?? null;
@@ -64,6 +78,22 @@ export class ChoreStore {
 
   setSound(on: boolean): void {
     this.state.update((s) => ({ ...s, soundOn: on }));
+  }
+
+  setCooldown(id: CooldownId): void {
+    this.state.update((s) => ({ ...s, cooldown: id }));
+  }
+
+  setLockSettings(on: boolean): void {
+    this.state.update((s) => ({ ...s, lockSettings: on }));
+  }
+
+  settingsUnlocked(): boolean {
+    return !this.lockSettings() || this.unlockedUntil() > Date.now();
+  }
+
+  unlockSettings(): void {
+    this.unlockedUntil.set(Date.now() + UNLOCK_GRACE_MS);
   }
 
   setActiveKid(id: string): void {
@@ -92,8 +122,10 @@ export class ChoreStore {
   removeKid(id: string): void {
     this.state.update((s) => {
       const kids = s.kids.filter((k) => k.id !== id);
-      const done = Object.fromEntries(Object.entries(s.done).filter(([key]) => !key.startsWith(`${id}|`))) as Record<string, true>;
-      return { ...s, kids, done, activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId };
+      const mine = (key: string) => key.startsWith(`${id}|`);
+      const done = Object.fromEntries(Object.entries(s.done).filter(([key]) => !mine(key))) as Record<string, true>;
+      const celebrated = Object.fromEntries(Object.entries(s.celebrated).filter(([key]) => !mine(key)));
+      return { ...s, kids, done, celebrated, activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId };
     });
   }
 
@@ -118,6 +150,19 @@ export class ChoreStore {
     return `${kidId}|${choreId}|w:${toISODate(monday)}`;
   }
 
+  prizeKey(kidId: string, monday: Date): string {
+    return `${kidId}|prize|w:${toISODate(monday)}`;
+  }
+
+  // Kids untick and re-tick chores to farm the animations, so a key only celebrates once per cooldown window.
+  claimCelebration(key: string): boolean {
+    const s = this.state();
+    const last = s.celebrated[key];
+    if (last !== undefined && Date.now() - last < cooldownMs(s.cooldown)) return false;
+    this.state.update((st) => ({ ...st, celebrated: { ...st.celebrated, [key]: Date.now() } }));
+    return true;
+  }
+
   isDone(key: string): boolean {
     return !!this.done()[key];
   }
@@ -135,9 +180,11 @@ export class ChoreStore {
 
   clearWeek(kidId: string, monday: Date): void {
     const keys = new Set(this.weekKeys(this.kids().find((k) => k.id === kidId), monday));
+    keys.add(this.prizeKey(kidId, monday));
     this.state.update((s) => ({
       ...s,
       done: Object.fromEntries(Object.entries(s.done).filter(([key]) => !keys.has(key))) as Record<string, true>,
+      celebrated: Object.fromEntries(Object.entries(s.celebrated).filter(([key]) => !keys.has(key))),
     }));
   }
 

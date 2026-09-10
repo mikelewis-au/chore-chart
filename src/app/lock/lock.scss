@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.lock {
+  max-width: 22rem;
+  margin: 2rem auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+
+  .icon {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  .ask {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .sum {
+    margin: 0;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+  }
+  input {
+    width: 100%;
+    min-height: 56px;
+    padding: 0.5rem 0.8rem;
+    border: 2px solid #e6e0f2;
+    border-radius: 12px;
+    background: #faf8ff;
+    color: var(--text);
+    font: inherit;
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-align: center;
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+  }
+  .nope {
+    margin: 0;
+    font-weight: 800;
+    color: #b91c1c;
+  }
+}
+
+.shake {
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(-8px);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+}

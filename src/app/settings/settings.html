@@ -11,6 +11,30 @@
   </label>
 </section>
 
+<section class="card">
+  <div class="setting">
+    <span class="switch-title">🎉 Repeat celebrations</span>
+    <span class="switch-sub">How long before the same chore can celebrate again</span>
+    <div class="segments">
+      @for (c of cooldowns; track c.id) {
+        <button class="seg" [class.selected]="store.cooldown() === c.id" (click)="store.setCooldown(c.id)">{{ c.label }}</button>
+      }
+    </div>
+    <p class="tip">{{ cooldownHint() }}</p>
+  </div>
+</section>
+
+<section class="card">
+  <label class="switch" for="lock-toggle">
+    <span class="switch-text">
+      <span class="switch-title">🔒 Grown-up lock</span>
+      <span class="switch-sub">Answer a times-table question to open settings</span>
+    </span>
+    <input id="lock-toggle" type="checkbox" role="switch" [checked]="store.lockSettings()" (change)="store.setLockSettings($any($event.target).checked)" />
+    <span class="track" aria-hidden="true"></span>
+  </label>
+</section>
+
 <section class="card add-kid">
   <label for="new-kid">Add a kid</label>
   <div class="row">

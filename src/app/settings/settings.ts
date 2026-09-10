@@ -1,6 +1,6 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ChoreStore } from '../store';
-import { AVATAR_GROUPS, CHORE_GROUPS, ChoreKind, KID_COLOURS, Kid, guessEmoji } from '../models';
+import { AVATAR_GROUPS, CHORE_GROUPS, COOLDOWNS, ChoreKind, KID_COLOURS, Kid, guessEmoji } from '../models';
 import { Avatar } from '../avatar/avatar';
 import { EmojiPicker } from '../emoji-picker/emoji-picker';
 import { startOfWeek } from '../week';
@@ -19,6 +19,8 @@ export class Settings {
   readonly kidColours = KID_COLOURS;
   readonly avatarGroups = AVATAR_GROUPS;
   readonly choreGroups = CHORE_GROUPS;
+  readonly cooldowns = COOLDOWNS;
+  readonly cooldownHint = computed(() => COOLDOWNS.find((c) => c.id === this.store.cooldown())?.hint ?? '');
 
   readonly picker = signal<PickerTarget | null>(null);
 

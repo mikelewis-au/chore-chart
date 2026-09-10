@@ -79,15 +79,20 @@ export class Board {
   }
 
   toggle(chore: Chore, ev: MouseEvent): void {
+    const kid = this.kid()!;
+    const key = this.key(chore);
     const wasUnlocked = this.stats()?.unlocked ?? false;
-    const nowDone = this.store.toggle(this.key(chore));
-    if (!nowDone) return;
-    const target = ev.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const x = ev.clientX || rect.left + 40;
-    const y = ev.clientY || rect.top + rect.height / 2;
+    if (!this.store.toggle(key)) return;
+    const justUnlocked = !wasUnlocked && (this.stats()?.unlocked ?? false);
+    // Claim both, so a chore re-ticked later replays neither animation.
+    const choreCheer = this.store.claimCelebration(key);
+    const prizeCheer = justUnlocked && this.store.claimCelebration(this.store.prizeKey(kid.id, this.monday()));
     const sound = this.store.soundOn();
-    if (!wasUnlocked && this.stats()?.unlocked) celebrate(sound);
-    else cheer(x, y, sound);
+    if (prizeCheer) {
+      celebrate(sound);
+    } else if (choreCheer) {
+      const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+      cheer(ev.clientX || rect.left + 40, ev.clientY || rect.top + rect.height / 2, sound);
+    }
   }
 }

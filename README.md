@@ -12,6 +12,8 @@ Live: https://mikelewis-au.github.io/chore-chart/
 - Tap a day to catch up on earlier days this week
 - Random celebrations when a chore is ticked, and a big one when the prize unlocks
 - Optional matching sound effects (on by default, toggle in Settings)
+- Celebration cooldown, so unticking and re-ticking a chore doesn't replay the animation (10 minutes by default)
+- Optional grown-up lock: a times-table question guards Settings
 - Mobile first, scales up to a two-column layout on iPad
 - Works offline once installed
 
