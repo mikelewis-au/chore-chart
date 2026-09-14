@@ -16,6 +16,7 @@ Live: https://mikelewis-au.github.io/chore-chart/
 - Celebration cooldown, so unticking and re-ticking a chore doesn't replay the animation (10 minutes by default)
 - Optional grown-up lock: a times-table question guards Settings
 - Optional toilet chart per kid (off by default): a sticker for every go and a reward when the card is full, with at most one sticker every 10 minutes, a quick undo, and new cards started by a grown-up from Settings
+- Kids pick their own sticker from superhero, battle top, speedy hedgehog, pocket monster and mushroom kingdom packs, or tap Surprise me
 - Mobile first, scales up to a two-column layout on iPad
 - Works offline once installed
 

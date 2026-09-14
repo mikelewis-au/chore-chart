@@ -241,15 +241,20 @@ export class ChoreStore {
     return { stickers, goal, left: Math.max(0, goal - stickers.length), full: stickers.length >= goal };
   }
 
-  addSticker(kid: Kid): Sticker | 'too-soon' | 'full' {
-    const card = this.stickerCard(kid);
-    if (card.full) return 'full';
-    const now = Date.now();
-    const since = now - (this.state().lastStickerAt[kid.id] ?? 0);
+  stickerStatus(kid: Kid): 'ok' | 'too-soon' | 'full' {
+    if (this.stickerCard(kid).full) return 'full';
+    const since = Date.now() - (this.state().lastStickerAt[kid.id] ?? 0);
     // A clock set backwards makes this negative; let it through rather than locking the chart for hours.
-    if (since >= 0 && since < STICKER_GAP_MS) return 'too-soon';
-    const pool = STICKERS.filter((e) => e !== card.stickers.at(-1)?.emoji);
-    const sticker: Sticker = { emoji: pool[Math.floor(Math.random() * pool.length)], at: now };
+    return since >= 0 && since < STICKER_GAP_MS ? 'too-soon' : 'ok';
+  }
+
+  // Re-checks the status because the sticker sheet can sit open while another tab adds a sticker.
+  addSticker(kid: Kid, emoji?: string): Sticker | 'too-soon' | 'full' {
+    const status = this.stickerStatus(kid);
+    if (status !== 'ok') return status;
+    const now = Date.now();
+    const pool = STICKERS.filter((e) => e !== this.stickerCard(kid).stickers.at(-1)?.emoji);
+    const sticker: Sticker = { emoji: emoji ?? pool[Math.floor(Math.random() * pool.length)], at: now };
     this.state.update((s) => ({
       ...s,
       stickers: { ...s.stickers, [kid.id]: [...(s.stickers[kid.id] ?? []), sticker] },

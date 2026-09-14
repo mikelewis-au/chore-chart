@@ -21,7 +21,7 @@
 
 <!-- Above the grid so it never needs a scroll to reach, even on a 20-sticker card. -->
 @if (!card().full) {
-  <button class="did-it" (click)="add($event)">
+  <button class="did-it" (click)="didIt()">
     <span class="emoji">🚽</span>
     <span>I did it!</span>
   </button>
@@ -35,7 +35,7 @@
     @for (s of slots(); track $index) {
       <div class="slot" [class.filled]="!!s">
         @if (s) {
-          <span class="sticker" [style.--tilt]="(($index % 3) - 1) * 10 + 'deg'">{{ s.emoji }}</span>
+          <span class="sticker" [style.--tilt]="(($index % 3) - 1) * 10 + 'deg'"><app-avatar [value]="s.emoji" /></span>
         } @else {
           {{ $index + 1 }}
         }
@@ -46,7 +46,21 @@
 
 @if (undoable(); as s) {
   <div class="toast" role="status">
-    <span>{{ s.emoji }} Sticker added</span>
+    <span><app-avatar [value]="s.emoji" /> Sticker added</span>
     <button (click)="undo()">Undo</button>
   </div>
+}
+
+@if (picking()) {
+  <app-emoji-picker
+    title="Pick your sticker!"
+    [groups]="stickerGroups"
+    [searchable]="false"
+    [big]="true"
+    (pointerdown)="noteTap($event)"
+    (pick)="choose($event)"
+    (closed)="closePicker()"
+  >
+    <button class="surprise" (click)="choose()">🎲 Surprise me!</button>
+  </app-emoji-picker>
 }

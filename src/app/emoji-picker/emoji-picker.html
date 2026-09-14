@@ -4,15 +4,18 @@
     <h2>{{ title() }}</h2>
     <button class="close" aria-label="Close" (click)="closed.emit()">✕</button>
   </header>
-  <input
-    class="search"
-    type="search"
-    placeholder="Search…"
-    autocomplete="off"
-    enterkeyhint="search"
-    [value]="query()"
-    (input)="query.set($any($event.target).value)"
-  />
+  @if (searchable()) {
+    <input
+      class="search"
+      type="search"
+      placeholder="Search…"
+      autocomplete="off"
+      enterkeyhint="search"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+  }
+  <ng-content />
   <div class="scroll">
     @for (g of filtered(); track g.label) {
       <h3>{{ g.label }}</h3>

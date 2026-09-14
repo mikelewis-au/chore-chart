@@ -44,8 +44,6 @@ export interface Sticker {
 
 export type BoardMode = 'chores' | 'toilet';
 
-export const STICKERS = ['⭐', '🌟', '🦄', '🦖', '🚀', '🌈', '🐸', '🐼', '🍭', '🎈', '🦋', '🐳', '🍩', '💖', '🐙'];
-
 export const STICKER_GAP_MS = 10 * 60_000;
 
 export interface AppState {
@@ -168,6 +166,67 @@ export const AVATAR_GROUPS: PickerGroup[] = [
 ];
 
 export const KID_AVATARS = AVATAR_GROUPS.flatMap((g) => g.items.map((i) => i.value));
+
+const sprites = (...keys: string[]) => keys.map((key) => ({ value: SPRITE_PREFIX + key, label: SPRITES[key].name }));
+
+export const STICKER_GROUPS: PickerGroup[] = [
+  {
+    label: 'Superheroes',
+    items: [
+      ...sprites('webHero', 'nightHero', 'greenGiant', 'starShield', 'armourHero', 'thunderHammer'),
+      ...items(`
+        🦸 superhero
+        🦸‍♀️ superhero
+        🦹 villain
+        ⚡ lightning
+      `),
+    ],
+  },
+  {
+    label: 'Battle tops',
+    items: [
+      ...sprites('blazeTop', 'stormTop', 'venomTop', 'goldTop'),
+      ...items(`
+        🌀 spin
+        💥 boom
+      `),
+    ],
+  },
+  {
+    label: 'Speedy hedgehog',
+    items: sprites('blueSpeedster', 'twinTailFox', 'redBrawler', 'goldRing', 'powerGem'),
+  },
+  {
+    label: 'Pocket monsters',
+    items: sprites('sparky', 'ember', 'catchBall', 'bulbBuddy', 'bubbleTurtle', 'puffball', 'grinGhost'),
+  },
+  {
+    label: 'Mushroom kingdom',
+    items: sprites('hero', 'greenCap', 'mushroom', 'powerStar', 'coin', 'questionBlock', 'fireFlower', 'greenPipe', 'dino', 'shelly'),
+  },
+  {
+    label: 'Classics',
+    items: items(`
+      ⭐ star
+      🌟 sparkle
+      🦄 unicorn
+      🦖 dinosaur
+      🚀 rocket
+      🌈 rainbow
+      🐸 frog
+      🐼 panda
+      🍭 lollipop
+      🎈 balloon
+      🦋 butterfly
+      🐳 whale
+      🍩 doughnut
+      💖 heart
+      🐙 octopus
+    `),
+  },
+];
+
+export const STICKERS = STICKER_GROUPS.flatMap((g) => g.items.map((i) => i.value));
 
 export const CHORE_GROUPS: PickerGroup[] = [
   {

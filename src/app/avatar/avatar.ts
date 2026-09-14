@@ -1,11 +1,11 @@
 import { Component, computed, input } from '@angular/core';
-import { SPRITE_SIZE, isSprite, spriteName, spritePixels } from '../avatars';
+import { isSprite, spriteName, spritePixels, spriteSize } from '../avatars';
 
 @Component({
   selector: 'app-avatar',
   template: `
     @if (pixels(); as px) {
-      <svg [attr.viewBox]="'0 0 ' + size + ' ' + size" shape-rendering="crispEdges" role="img" [attr.aria-label]="name()">
+      <svg [attr.viewBox]="'0 0 ' + size() + ' ' + size()" shape-rendering="crispEdges" role="img" [attr.aria-label]="name()">
         @for (p of px; track $index) {
           <rect [attr.x]="p.x" [attr.y]="p.y" width="1" height="1" [attr.fill]="p.c" />
         }
@@ -29,7 +29,7 @@ import { SPRITE_SIZE, isSprite, spriteName, spritePixels } from '../avatars';
 })
 export class Avatar {
   readonly value = input.required<string>();
-  readonly size = SPRITE_SIZE;
+  readonly size = computed(() => spriteSize(this.value()));
   readonly pixels = computed(() => (isSprite(this.value()) ? spritePixels(this.value()) : null));
   readonly name = computed(() => spriteName(this.value()));
 }

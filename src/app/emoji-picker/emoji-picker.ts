@@ -16,11 +16,14 @@ export interface PickerGroup {
   imports: [Avatar],
   templateUrl: './emoji-picker.html',
   styleUrl: './emoji-picker.scss',
+  host: { '[class.big]': 'big()' },
 })
 export class EmojiPicker {
   readonly title = input('Pick one');
   readonly groups = input.required<PickerGroup[]>();
   readonly selected = input('');
+  readonly searchable = input(true);
+  readonly big = input(false);
   readonly pick = output<string>();
   readonly closed = output<void>();
 
