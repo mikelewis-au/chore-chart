@@ -25,7 +25,28 @@ export interface Kid {
   prize: string;
   prizeThreshold: number;
   chores: Chore[];
+  // Optional so kids saved before this existed load with the chart off.
+  toilet?: ToiletChart;
 }
+
+export interface ToiletChart {
+  enabled: boolean;
+  goal: number;
+  reward: string;
+}
+
+export const DEFAULT_TOILET: ToiletChart = { enabled: false, goal: 10, reward: '' };
+
+export interface Sticker {
+  emoji: string;
+  at: number;
+}
+
+export type BoardMode = 'chores' | 'toilet';
+
+export const STICKERS = ['⭐', '🌟', '🦄', '🦖', '🚀', '🌈', '🐸', '🐼', '🍭', '🎈', '🦋', '🐳', '🍩', '💖', '🐙'];
+
+export const STICKER_GAP_MS = 10 * 60_000;
 
 export interface AppState {
   version: 1;
@@ -36,6 +57,9 @@ export interface AppState {
   cooldown: CooldownId;
   lockSettings: boolean;
   celebrated: Record<string, number>;
+  stickers: Record<string, Sticker[]>;
+  lastStickerAt: Record<string, number>;
+  boardMode: Record<string, BoardMode>;
 }
 
 export type CooldownId = 'off' | '1m' | '10m' | '1h' | 'once';

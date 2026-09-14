@@ -100,6 +100,10 @@ export class Settings {
     this.confirmAction(`week:${kid.id}`, () => this.store.clearWeek(kid.id, startOfWeek(new Date())));
   }
 
+  newCard(kid: Kid): void {
+    this.confirmAction(`toilet:${kid.id}`, () => this.store.newCard(kid.id));
+  }
+
   value(ev: Event): string {
     return (ev.target as HTMLInputElement).value;
   }

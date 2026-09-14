@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AppState, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, KID_AVATARS, KID_COLOURS, Kid, cooldownMs, dueOn, guessEmoji } from './models';
+import { AppState, BoardMode, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, DEFAULT_TOILET, KID_AVATARS, KID_COLOURS, Kid, STICKERS, STICKER_GAP_MS, Sticker, ToiletChart, cooldownMs, dueOn, guessEmoji } from './models';
 import { addDays, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
@@ -15,12 +15,19 @@ export interface WeekStats {
   needed: number;
 }
 
+export interface StickerCard {
+  stickers: Sticker[];
+  goal: number;
+  left: number;
+  full: boolean;
+}
+
 function uid(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
 function emptyState(): AppState {
-  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true, cooldown: DEFAULT_COOLDOWN, lockSettings: false, celebrated: {} };
+  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true, cooldown: DEFAULT_COOLDOWN, lockSettings: false, celebrated: {}, stickers: {}, lastStickerAt: {}, boardMode: {} };
 }
 
 function load(): AppState {
@@ -36,6 +43,9 @@ function load(): AppState {
       cooldown: parsed.cooldown ?? DEFAULT_COOLDOWN,
       lockSettings: parsed.lockSettings ?? false,
       celebrated: prune(parsed.celebrated ?? {}),
+      stickers: parsed.stickers ?? {},
+      lastStickerAt: parsed.lastStickerAt ?? {},
+      boardMode: parsed.boardMode ?? {},
     };
   } catch {
     return emptyState();
@@ -46,6 +56,10 @@ function load(): AppState {
 function prune<T>(rec: Record<string, T>): Record<string, T> {
   const cutoff = toISODate(addDays(startOfWeek(new Date()), -56));
   return Object.fromEntries(Object.entries(rec).filter(([k]) => k.slice(-10) >= cutoff)) as Record<string, T>;
+}
+
+function omit<T>(rec: Record<string, T>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(rec).filter(([k]) => k !== key));
 }
 
 function save(state: AppState): void {
@@ -125,7 +139,16 @@ export class ChoreStore {
       const mine = (key: string) => key.startsWith(`${id}|`);
       const done = Object.fromEntries(Object.entries(s.done).filter(([key]) => !mine(key))) as Record<string, true>;
       const celebrated = Object.fromEntries(Object.entries(s.celebrated).filter(([key]) => !mine(key)));
-      return { ...s, kids, done, celebrated, activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId };
+      return {
+        ...s,
+        kids,
+        done,
+        celebrated,
+        stickers: omit(s.stickers, id),
+        lastStickerAt: omit(s.lastStickerAt, id),
+        boardMode: omit(s.boardMode, id),
+        activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId,
+      };
     });
   }
 
@@ -196,6 +219,52 @@ export class ChoreStore {
     const pct = total ? Math.round((doneCount / total) * 100) : 0;
     const target = Math.ceil((kid.prizeThreshold / 100) * total);
     return { total, done: doneCount, pct, unlocked: total > 0 && doneCount >= target, needed: Math.max(0, target - doneCount) };
+  }
+
+  setToilet(kidId: string, patch: Partial<ToiletChart>): void {
+    this.updateKid(kidId, (k) => ({ ...k, toilet: { ...DEFAULT_TOILET, ...k.toilet, ...patch } }));
+  }
+
+  setBoardMode(kidId: string, mode: BoardMode): void {
+    this.state.update((s) => ({ ...s, boardMode: { ...s.boardMode, [kidId]: mode } }));
+  }
+
+  // The saved choice outlives the chart being switched off, so switching it back on returns to the same view.
+  modeFor(kid: Kid): BoardMode {
+    if (!kid.toilet?.enabled) return 'chores';
+    return this.state().boardMode[kid.id] ?? (kid.chores.length ? 'chores' : 'toilet');
+  }
+
+  stickerCard(kid: Kid): StickerCard {
+    const stickers = this.state().stickers[kid.id] ?? [];
+    const goal = kid.toilet?.goal ?? DEFAULT_TOILET.goal;
+    return { stickers, goal, left: Math.max(0, goal - stickers.length), full: stickers.length >= goal };
+  }
+
+  addSticker(kid: Kid): Sticker | 'too-soon' | 'full' {
+    const card = this.stickerCard(kid);
+    if (card.full) return 'full';
+    const now = Date.now();
+    const since = now - (this.state().lastStickerAt[kid.id] ?? 0);
+    // A clock set backwards makes this negative; let it through rather than locking the chart for hours.
+    if (since >= 0 && since < STICKER_GAP_MS) return 'too-soon';
+    const pool = STICKERS.filter((e) => e !== card.stickers.at(-1)?.emoji);
+    const sticker: Sticker = { emoji: pool[Math.floor(Math.random() * pool.length)], at: now };
+    this.state.update((s) => ({
+      ...s,
+      stickers: { ...s.stickers, [kid.id]: [...(s.stickers[kid.id] ?? []), sticker] },
+      lastStickerAt: { ...s.lastStickerAt, [kid.id]: now },
+    }));
+    return sticker;
+  }
+
+  // Leaves lastStickerAt alone, so undoing and tapping again can't skip the gap or replay the celebration.
+  undoSticker(kidId: string, at: number): void {
+    this.state.update((s) => ({ ...s, stickers: { ...s.stickers, [kidId]: (s.stickers[kidId] ?? []).filter((st) => st.at !== at) } }));
+  }
+
+  newCard(kidId: string): void {
+    this.state.update((s) => ({ ...s, stickers: omit(s.stickers, kidId), lastStickerAt: omit(s.lastStickerAt, kidId) }));
   }
 
   seedExample(): void {

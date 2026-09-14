@@ -1,0 +1,210 @@
+:host {
+  display: block;
+}
+
+.reward {
+  margin-bottom: 0.9rem;
+  border: 3px solid transparent;
+
+  .reward-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .gift {
+    font-size: 2.6rem;
+    line-height: 1;
+  }
+  .reward-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 800;
+  }
+  .reward-name {
+    font-size: 1.25rem;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+  }
+  .count {
+    font-size: 1.9rem;
+    font-weight: 900;
+    color: var(--kid);
+    white-space: nowrap;
+    small {
+      font-size: 1rem;
+    }
+  }
+
+  .bar {
+    margin: 0.8rem 0 0.5rem;
+    height: 16px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--kid) 15%, #f1eef7);
+  }
+  .fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--kid) 70%, white), var(--kid));
+    transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.2);
+  }
+  .hint {
+    font-size: 0.95rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  &.full {
+    border-color: #fbbf24;
+    background: linear-gradient(135deg, #fffbeb, #fff);
+    animation: glow 1.6s ease-in-out infinite alternate;
+    .gift {
+      animation: bounce 0.9s ease-in-out infinite alternate;
+    }
+    .hint {
+      color: #b45309;
+    }
+  }
+}
+
+.stickers {
+  margin-bottom: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.slot {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px dashed color-mix(in srgb, var(--kid) 40%, white);
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--kid) 50%, white);
+  font-weight: 900;
+
+  &.filled {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--kid) 55%, white);
+    background: color-mix(in srgb, var(--kid) 14%, white);
+  }
+  .sticker {
+    font-size: clamp(1.6rem, 8vw, 2.8rem);
+    line-height: 1;
+    transform: rotate(var(--tilt, 0deg));
+    animation: stick 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+  }
+}
+
+.did-it {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 88px;
+  margin-bottom: 0.9rem;
+  border: 0;
+  border-radius: 24px;
+  background: var(--kid);
+  color: white;
+  font: inherit;
+  font-size: 1.6rem;
+  font-weight: 900;
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--kid) 65%, black), var(--shadow);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+
+  .emoji {
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+  &:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--kid) 65%, black), var(--shadow);
+  }
+}
+
+.nudge {
+  margin: -0.2rem 0 0.9rem;
+  text-align: center;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
+  border-radius: 999px;
+  background: var(--text);
+  color: white;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(42, 27, 61, 0.3);
+  transform: translateX(-50%);
+  animation: rise 0.25s ease-out;
+
+  button {
+    min-height: 44px;
+    padding: 0 1.1rem;
+    border: 0;
+    border-radius: 999px;
+    background: white;
+    color: var(--text);
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+  }
+}
+
+@keyframes stick {
+  0% {
+    opacity: 0;
+    transform: scale(2.2) rotate(-25deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.9) rotate(var(--tilt, 0deg));
+  }
+  100% {
+    transform: scale(1) rotate(var(--tilt, 0deg));
+  }
+}
+@keyframes glow {
+  from {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.35);
+  }
+  to {
+    box-shadow: 0 0 24px 6px rgba(251, 191, 36, 0.45);
+  }
+}
+@keyframes bounce {
+  from {
+    transform: translateY(0) rotate(-6deg);
+  }
+  to {
+    transform: translateY(-6px) rotate(6deg);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}

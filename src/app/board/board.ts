@@ -5,10 +5,11 @@ import { ChoreStore } from '../store';
 import { Chore, dueOn } from '../models';
 import { DAY_LABELS, DAY_NAMES, dayIndex, startOfWeek, toISODate, weekDates } from '../week';
 import { celebrate, cheer } from '../confetti';
+import { ToiletCard } from '../toilet/toilet-card';
 
 @Component({
   selector: 'app-board',
-  imports: [RouterLink, Avatar],
+  imports: [RouterLink, Avatar, ToiletCard],
   templateUrl: './board.html',
   styleUrl: './board.scss',
 })
@@ -22,6 +23,10 @@ export class Board {
   readonly days = computed(() => weekDates(this.monday()));
 
   readonly kid = this.store.activeKid;
+  readonly mode = computed(() => {
+    const kid = this.kid();
+    return kid ? this.store.modeFor(kid) : 'chores';
+  });
   readonly daily = computed(() => this.kid()?.chores.filter((c) => c.kind === 'daily') ?? []);
   readonly dailyDue = computed(() => this.daily().filter((c) => dueOn(c, this.selectedDay())));
   readonly weekly = computed(() => this.kid()?.chores.filter((c) => c.kind === 'weekly') ?? []);

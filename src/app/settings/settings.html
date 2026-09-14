@@ -58,7 +58,7 @@
       <span class="avatar"><app-avatar [value]="k.emoji" /></span>
       <span class="title">
         <span class="name">{{ k.name }}</span>
-        <span class="sub">{{ chores(k, 'daily').length }} daily · {{ chores(k, 'weekly').length }} weekly</span>
+        <span class="sub">{{ chores(k, 'daily').length }} daily · {{ chores(k, 'weekly').length }} weekly{{ k.toilet?.enabled ? ' · toilet chart' : '' }}</span>
       </span>
       <span class="chevron">{{ expanded() === k.id ? '▾' : '▸' }}</span>
     </button>
@@ -122,6 +122,28 @@
           <button class="btn" (click)="addChore(k, 'weekly', weeklyInput)">Add</button>
         </div>
         <p class="tip">Tip: tap a chore's emoji to pick a different one.</p>
+
+        <h3>Toilet chart</h3>
+        <label class="switch" [attr.for]="'toilet-' + k.id">
+          <span class="switch-text">
+            <span class="switch-title">🚽 Sticker card</span>
+            <span class="switch-sub">A sticker for every go on {{ k.name }}'s board, and a reward when the card is full</span>
+          </span>
+          <input [id]="'toilet-' + k.id" type="checkbox" role="switch" [checked]="!!k.toilet?.enabled" (change)="store.setToilet(k.id, { enabled: $any($event.target).checked })" />
+          <span class="track" aria-hidden="true"></span>
+        </label>
+        @if (k.toilet?.enabled) {
+          <label>Card reward</label>
+          <input type="text" placeholder="e.g. Trip to the park 🛝" [value]="k.toilet?.reward ?? ''" (change)="store.setToilet(k.id, { reward: value($event) })" />
+
+          <label>Card size: <strong>{{ k.toilet?.goal }}</strong> stickers</label>
+          <input type="range" min="5" max="20" step="1" [value]="k.toilet?.goal" (input)="store.setToilet(k.id, { goal: +value($event) })" />
+
+          <button class="btn ghost new-card" (click)="newCard(k)">
+            {{ confirming() === 'toilet:' + k.id ? 'Tap again to start a new card' : 'Start a new card (' + store.stickerCard(k).stickers.length + '/' + store.stickerCard(k).goal + ')' }}
+          </button>
+          <p class="tip">A new sticker can go on 10 minutes after the last one.</p>
+        }
 
         <div class="actions">
           <button class="btn ghost" (click)="clearWeek(k)">

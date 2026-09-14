@@ -78,6 +78,36 @@
   }
 }
 
+.modes {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+  padding: 0.3rem;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.mode {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  &.selected {
+    background: var(--kid);
+    color: white;
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
 .prize {
   margin-bottom: 0.9rem;
   border: 3px solid transparent;

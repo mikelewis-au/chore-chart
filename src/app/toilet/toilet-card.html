@@ -1,0 +1,52 @@
+<section class="card reward" [class.full]="card().full">
+  <div class="reward-row">
+    <span class="gift">{{ card().full ? '🏆' : '🎁' }}</span>
+    <div class="reward-text">
+      <div class="label">{{ card().full ? 'Card complete!' : 'Sticker card reward' }}</div>
+      <div class="reward-name">{{ kid().toilet?.reward || 'No reward set yet' }}</div>
+    </div>
+    <div class="count">{{ card().stickers.length }}<small>/{{ card().goal }}</small></div>
+  </div>
+  <div class="bar">
+    <div class="fill" [style.width.%]="pct()"></div>
+  </div>
+  <div class="hint">
+    @if (card().full) {
+      🎉 Amazing, {{ kid().name }}! Ask a grown-up to start a new card.
+    } @else {
+      {{ card().left }} more {{ card().left === 1 ? 'sticker' : 'stickers' }} to fill the card.
+    }
+  </div>
+</section>
+
+<!-- Above the grid so it never needs a scroll to reach, even on a 20-sticker card. -->
+@if (!card().full) {
+  <button class="did-it" (click)="add($event)">
+    <span class="emoji">🚽</span>
+    <span>I did it!</span>
+  </button>
+  @if (nudging()) {
+    <p class="nudge" role="status">Great job! Next sticker a bit later ⏳</p>
+  }
+}
+
+<section class="card stickers">
+  <div class="grid">
+    @for (s of slots(); track $index) {
+      <div class="slot" [class.filled]="!!s">
+        @if (s) {
+          <span class="sticker" [style.--tilt]="(($index % 3) - 1) * 10 + 'deg'">{{ s.emoji }}</span>
+        } @else {
+          {{ $index + 1 }}
+        }
+      </div>
+    }
+  </div>
+</section>
+
+@if (undoable(); as s) {
+  <div class="toast" role="status">
+    <span>{{ s.emoji }} Sticker added</span>
+    <button (click)="undo()">Undo</button>
+  </div>
+}
