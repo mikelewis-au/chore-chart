@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AppState, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, KID_AVATARS, KID_COLOURS, Kid, cooldownMs, guessEmoji } from './models';
+import { AppState, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, KID_AVATARS, KID_COLOURS, Kid, cooldownMs, dueOn, guessEmoji } from './models';
 import { addDays, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
@@ -215,7 +215,9 @@ export class ChoreStore {
     if (!kid) return [];
     const days = weekDates(monday);
     return kid.chores.flatMap((c) =>
-      c.kind === 'daily' ? days.map((d) => this.dailyKey(kid.id, c.id, d)) : [this.weeklyKey(kid.id, c.id, monday)],
+      c.kind === 'daily'
+        ? days.filter((d) => dueOn(c, d)).map((d) => this.dailyKey(kid.id, c.id, d))
+        : [this.weeklyKey(kid.id, c.id, monday)],
     );
   }
 

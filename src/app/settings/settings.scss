@@ -309,6 +309,25 @@ h3 {
     flex: 1;
     min-width: 0;
   }
+  .weekdays {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 0.55rem;
+    border: 2px solid #e6e0f2;
+    border-radius: 12px;
+    background: #faf8ff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+    &.on {
+      background: var(--kid, var(--accent));
+      border-color: var(--kid, var(--accent));
+      color: white;
+    }
+  }
   .remove {
     flex: 0 0 auto;
     width: 44px;

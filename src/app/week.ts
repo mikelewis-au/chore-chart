@@ -27,3 +27,7 @@ export function weekDates(monday: Date): Date[] {
 export function dayIndex(d: Date): number {
   return (d.getDay() + 6) % 7;
 }
+
+export function isWeekend(d: Date): boolean {
+  return dayIndex(d) >= 5;
+}

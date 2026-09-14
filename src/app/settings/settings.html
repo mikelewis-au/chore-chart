@@ -87,11 +87,20 @@
         <label>Prize goal: <strong>{{ k.prizeThreshold }}%</strong> of the week's chores</label>
         <input type="range" min="50" max="100" step="5" [value]="k.prizeThreshold" (input)="store.patchKid(k.id, { prizeThreshold: +value($event) })" />
 
-        <h3>Daily chores <small>every day, Mon to Sun</small></h3>
+        <h3>Daily chores <small>tap Mon–Fri to skip weekends</small></h3>
         @for (c of chores(k, 'daily'); track c.id) {
           <div class="chore-row">
             <button class="emoji" title="Change emoji" (click)="picker.set({ kind: 'chore', kidId: k.id, choreId: c.id })">{{ c.emoji }}</button>
             <input type="text" [value]="c.name" (change)="store.patchChore(k.id, c.id, { name: value($event) })" />
+            <button
+              class="weekdays"
+              title="Weekdays only"
+              [class.on]="c.weekdaysOnly"
+              [attr.aria-pressed]="!!c.weekdaysOnly"
+              (click)="store.patchChore(k.id, c.id, { weekdaysOnly: !c.weekdaysOnly })"
+            >
+              Mon–Fri
+            </button>
             <button class="remove" aria-label="Remove chore" (click)="store.removeChore(k.id, c.id)">✕</button>
           </div>
         }

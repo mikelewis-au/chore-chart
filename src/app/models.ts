@@ -1,5 +1,6 @@
 import { SPRITES, SPRITE_PREFIX, SPRITE_VALUES } from './avatars';
 import type { PickerGroup } from './emoji-picker/emoji-picker';
+import { isWeekend } from './week';
 
 export type ChoreKind = 'daily' | 'weekly';
 
@@ -8,6 +9,12 @@ export interface Chore {
   name: string;
   emoji: string;
   kind: ChoreKind;
+  // Optional so chores saved before this existed load as every-day.
+  weekdaysOnly?: boolean;
+}
+
+export function dueOn(chore: Chore, day: Date): boolean {
+  return !chore.weekdaysOnly || !isWeekend(day);
 }
 
 export interface Kid {

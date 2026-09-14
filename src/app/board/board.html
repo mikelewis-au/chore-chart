@@ -65,14 +65,18 @@
     <div class="columns" [style.--kid]="k.colour">
       <section class="card list">
         <h2>{{ dayTitle() }}</h2>
-        @for (c of daily(); track c.id) {
+        @for (c of dailyDue(); track c.id) {
           <button class="chore" [class.done]="store.isDone(key(c))" (click)="toggle(c, $event)">
             <span class="check">✓</span>
             <span class="emoji">{{ c.emoji }}</span>
             <span class="text">{{ c.name }}</span>
           </button>
         } @empty {
-          <p class="muted">No daily chores yet. <a routerLink="/settings">Add some</a>.</p>
+          @if (daily().length) {
+            <p class="muted">No daily chores on the weekend. Enjoy the break! 🎉</p>
+          } @else {
+            <p class="muted">No daily chores yet. <a routerLink="/settings">Add some</a>.</p>
+          }
         }
       </section>
 

@@ -7,7 +7,8 @@ Live: https://mikelewis-au.github.io/chore-chart/
 ## Features
 
 - Multiple kids, one tap to switch between them, with pixel-art characters or emoji as avatars
-- Daily chores (every day, Monday to Sunday) and weekly chores per kid, each with a searchable emoji picker
+- Daily chores and weekly chores per kid, each with a searchable emoji picker
+- Daily chores can be set to Mon–Fri only (homework, school bag), so weekends don't show them or count them towards the prize
 - Weekly prize with a percentage goal; the week starts on Monday
 - Tap a day to catch up on earlier days this week
 - Random celebrations when a chore is ticked, and a big one when the prize unlocks

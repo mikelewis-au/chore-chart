@@ -2,7 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Avatar } from '../avatar/avatar';
 import { ChoreStore } from '../store';
-import { Chore } from '../models';
+import { Chore, dueOn } from '../models';
 import { DAY_LABELS, DAY_NAMES, dayIndex, startOfWeek, toISODate, weekDates } from '../week';
 import { celebrate, cheer } from '../confetti';
 
@@ -23,6 +23,7 @@ export class Board {
 
   readonly kid = this.store.activeKid;
   readonly daily = computed(() => this.kid()?.chores.filter((c) => c.kind === 'daily') ?? []);
+  readonly dailyDue = computed(() => this.daily().filter((c) => dueOn(c, this.selectedDay())));
   readonly weekly = computed(() => this.kid()?.chores.filter((c) => c.kind === 'weekly') ?? []);
   readonly stats = computed(() => {
     const kid = this.kid();
@@ -67,8 +68,8 @@ export class Board {
 
   dayDone(d: Date): boolean {
     const kid = this.kid();
-    const daily = this.daily();
-    return !!kid && daily.length > 0 && daily.every((c) => this.store.isDone(this.store.dailyKey(kid.id, c.id, d)));
+    const due = this.daily().filter((c) => dueOn(c, d));
+    return !!kid && due.length > 0 && due.every((c) => this.store.isDone(this.store.dailyKey(kid.id, c.id, d)));
   }
 
   key(chore: Chore): string {
