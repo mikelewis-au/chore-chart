@@ -25,7 +25,11 @@
     }
 
     @if (mode() === 'toilet') {
-      <app-toilet-card [kid]="k" [style.--kid]="k.colour" />
+      @if (k.toilet?.style === 'dry-days') {
+        <app-dry-days-card [kid]="k" [today]="today()" [style.--kid]="k.colour" />
+      } @else {
+        <app-toilet-card [kid]="k" [style.--kid]="k.colour" />
+      }
     } @else {
       @if (stats(); as s) {
         <section class="card prize" [style.--kid]="k.colour" [class.unlocked]="s.unlocked">

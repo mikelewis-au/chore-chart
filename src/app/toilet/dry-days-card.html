@@ -1,0 +1,172 @@
+@let v = view();
+
+<section class="card prizes" [class.ready]="v.ready">
+  <div class="prize">
+    <div class="label">Every row</div>
+    <div class="prize-name"><span class="icon">🎁</span>{{ kid().toilet?.smallPrize || 'No small prize set yet' }}</div>
+  </div>
+  <div class="prize big">
+    <div class="label">Big prize</div>
+    <div class="prize-name"><span class="icon">💰</span>{{ kid().toilet?.bigPrize || 'No big prize set yet' }}</div>
+    <div class="jar" [attr.aria-label]="v.coins + ' of ' + v.coinsNeeded + ' coins saved'">
+      @for (full of jar().slots; track $index) {
+        <span class="coin" [class.full]="full">★</span>
+      }
+      @if (jar().extra) {
+        <span class="extra">+{{ jar().extra }}</span>
+      }
+    </div>
+  </div>
+  @if (v.ready) {
+    <p class="ready-line">🎉 Big prize ready! Ask a grown-up</p>
+  }
+</section>
+
+@if (v.complete) {
+  <section class="complete">
+    <span class="icon">🏆</span>
+    <span><b>Chart complete!</b><small>Ask a grown-up to start the next chart</small></span>
+  </section>
+} @else {
+  <div class="actions">
+    <button class="dry" [class.rest]="!v.canClaimToday" (click)="tapDry()">
+      @if (v.todayEntry?.accident) {
+        <span class="emoji">🌅</span><span class="text">Fresh try<small>starts tomorrow</small></span>
+      } @else if (!v.canClaimToday) {
+        <span class="emoji">✅</span><span class="text">Sticker's on!<small>Back tomorrow</small></span>
+      } @else {
+        <span class="emoji">⭐</span><span class="text">Dry day!<small>Pick a sticker</small></span>
+      }
+    </button>
+    <button class="accident" [class.rest]="!v.canLogAccident" (click)="tapAccident()">
+      <span class="emoji">💧</span><small>Accident</small>
+    </button>
+  </div>
+  @if (v.canClaimYesterday) {
+    <button class="yesterday" (click)="tapYesterday()">Forgot last night? Pick yesterday's sticker ⭐</button>
+  }
+}
+@if (note(); as text) {
+  <p class="note" role="status">{{ text }}</p>
+}
+
+<section class="card chart" [class.hop]="finaleRow() !== null">
+  <div class="chart-head">
+    @if (v.complete) {
+      <strong>All {{ v.rows.length }} rows done!</strong><span>🏆</span>
+    } @else {
+      <strong>Row {{ v.current + 1 }} of {{ v.rows.length }}</strong>
+      <span>{{ left() }} more dry {{ left() === 1 ? 'day' : 'days' }} for a coin</span>
+    }
+  </div>
+  <div class="rows">
+    @for (row of grid(); track $index; let r = $index) {
+      <div class="row" [class.future]="row.status === 'future'" [attr.data-row]="r" [style.--per]="v.perRow">
+        @for (cell of row.cells; track $index) {
+          <div class="slot" [class.filled]="!!cell.sticker" [class.today]="cell.today" [class.washing]="cell.washing" [style.--i]="$index" [style.--hop]="cell.hop">
+            @if (cell.sticker) {
+              <span class="sticker" [style.--tilt]="(($index % 3) - 1) * 9 + 'deg'"><app-avatar [value]="cell.sticker" /></span>
+              <span class="stamp">{{ cell.stamp }}</span>
+            } @else {
+              {{ $index + 1 }}
+              @if (cell.today) {
+                <span class="stamp">Today</span>
+              }
+            }
+          </div>
+        }
+        @switch (row.status) {
+          @case ('saved') {
+            <span class="cap" title="Saved in the jar"><span class="coin full">★</span></span>
+          }
+          @case ('spent') {
+            <span class="cap gift" title="Spent on the small prize">🎁</span>
+          }
+          @case ('choosing') {
+            <button class="cap ask" aria-label="Spend or save this coin" (click)="openChoice(r)"><span class="coin full">★</span></button>
+          }
+          @case ('active') {
+            <span class="cap count">{{ row.done }}/{{ v.perRow }}</span>
+          }
+          @default {
+            <span class="cap"><span class="coin"></span></span>
+          }
+        }
+      </div>
+    }
+  </div>
+</section>
+
+@if (undoable(); as u) {
+  <div class="toast" role="status">
+    <span>{{ u.kind === 'sticker' ? 'Sticker added' : 'Accident logged' }}</span>
+    <button (click)="undo()">Undo</button>
+  </div>
+}
+
+@if (pickingDay(); as day) {
+  <app-emoji-picker
+    [title]="day === 'today' ? 'Pick your sticker!' : 'Pick a sticker for yesterday'"
+    [groups]="stickerGroups"
+    [searchable]="false"
+    [big]="true"
+    (pointerdown)="noteTap($event)"
+    (pick)="pick($event)"
+    (closed)="closeSheet()"
+  >
+    <button class="surprise" (click)="pick()">🎲 Surprise me!</button>
+  </app-emoji-picker>
+}
+
+@if (confirmingAccident()) {
+  <div class="backdrop" (click)="closeSheet()"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="accident-title">
+    <div class="sheet-icon">💧</div>
+    <h2 id="accident-title">Accidents happen. That's OK!</h2>
+    <p>
+      @if (v.rows[v.current]?.days?.length) {
+        Row {{ v.current + 1 }} starts again tomorrow. Coins in the jar stay safe.
+      } @else {
+        Nothing lost. Try again tomorrow.
+      }
+    </p>
+    <div class="pair">
+      <button class="btn" (click)="closeSheet()">Cancel</button>
+      <button class="btn log" (click)="confirmAccident()">Log accident</button>
+    </div>
+  </div>
+}
+
+@if (choiceRow() !== null) {
+  <div class="backdrop" (click)="closeSheet()"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="choice-title">
+    <div class="sheet-icon"><span class="coin full big-coin">★</span></div>
+    <h2 id="choice-title">{{ v.perRow }} dry days in a row!</h2>
+    <p>You earned a coin. What do you want to do with it?</p>
+    <button class="choice spend" (click)="choose('spent')">
+      <span class="choice-icon">🎁</span>
+      <span class="choice-text"><b>Small prize now</b><small>{{ kid().toilet?.smallPrize || 'Ask a grown-up what it is' }}</small></span>
+    </button>
+    <button class="choice save" (click)="choose('saved')">
+      <span class="choice-icon"><span class="coin full">★</span></span>
+      <span class="choice-text"><b>Save it in my jar</b><small>{{ saveHint() }}</small></span>
+    </button>
+    <button class="later" (click)="closeSheet()">Decide later</button>
+  </div>
+}
+
+@if (finaleRow() !== null) {
+  <div class="finale" role="dialog" aria-modal="true" aria-label="Chart champion!">
+    <div class="finale-card">
+      <div class="trophy">🏆</div>
+      <h2 class="champion" aria-hidden="true">
+        @for (ch of champion; track $index) {
+          <span [style.--i]="$index">{{ ch }}</span>
+        }
+      </h2>
+      <p class="finale-sub">{{ v.rows.length * v.perRow }} dry days · {{ v.rows.length }} rows</p>
+      <p class="finale-next">Ask a grown-up to start your next chart</p>
+      <button class="yay" (click)="yay()">Yay! 🎉</button>
+    </div>
+  </div>
+}

@@ -1,9 +1,9 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ChoreStore } from '../store';
-import { AVATAR_GROUPS, CHORE_GROUPS, COOLDOWNS, ChoreKind, KID_COLOURS, Kid, guessEmoji } from '../models';
+import { AVATAR_GROUPS, CHORE_GROUPS, COOLDOWNS, ChoreKind, DEFAULT_DRY, KID_COLOURS, Kid, guessEmoji } from '../models';
 import { Avatar } from '../avatar/avatar';
 import { EmojiPicker } from '../emoji-picker/emoji-picker';
-import { startOfWeek } from '../week';
+import { fromISODate, startOfWeek } from '../week';
 import { party } from '../sounds';
 
 type PickerTarget = { kind: 'avatar'; kidId: string } | { kind: 'chore'; kidId: string; choreId: string };
@@ -21,6 +21,8 @@ export class Settings {
   readonly choreGroups = CHORE_GROUPS;
   readonly cooldowns = COOLDOWNS;
   readonly cooldownHint = computed(() => COOLDOWNS.find((c) => c.id === this.store.cooldown())?.hint ?? '');
+  readonly dryDefaults = DEFAULT_DRY;
+  readonly today = new Date();
 
   readonly picker = signal<PickerTarget | null>(null);
 
@@ -102,6 +104,22 @@ export class Settings {
 
   newCard(kid: Kid): void {
     this.confirmAction(`toilet:${kid.id}`, () => this.store.newCard(kid.id));
+  }
+
+  prizeGiven(kid: Kid): void {
+    this.confirmAction(`prize:${kid.id}`, () => this.store.prizeGiven(kid));
+  }
+
+  removeAccident(kid: Kid, date: string): void {
+    this.confirmAction(`accident:${kid.id}`, () => this.store.removeAccident(kid.id, date));
+  }
+
+  newDryChart(kid: Kid): void {
+    this.confirmAction(`dry:${kid.id}`, () => this.store.newDryChart(kid.id, new Date()));
+  }
+
+  dayName(iso: string): string {
+    return fromISODate(iso).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
   }
 
   value(ev: Event): string {

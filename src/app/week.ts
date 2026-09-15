@@ -7,6 +7,12 @@ export function toISODate(d: Date): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+// Local midnight; new Date('YYYY-MM-DD') would parse as UTC and can land on the previous day.
+export function fromISODate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function addDays(d: Date, n: number): Date {
   const x = new Date(d);
   x.setDate(x.getDate() + n);

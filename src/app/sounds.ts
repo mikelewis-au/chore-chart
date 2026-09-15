@@ -109,3 +109,43 @@ export const fanfare = play((c) => {
   tone(c, { freq: 262, type: 'square', start: 0.55, dur: 1.1, gain: 0.04 });
   noise(c, { start: 0.55, dur: 0.9, gain: 0.08, from: 1000, to: 6000 });
 });
+
+export const coin = play((c) => {
+  tone(c, { freq: 988, type: 'square', dur: 0.08, gain: 0.07 });
+  tone(c, { freq: 1319, type: 'square', start: 0.08, dur: 0.4, gain: 0.07 });
+});
+
+// Soft and falling rather than sad: logging an accident shouldn't sound like a telling-off.
+export const bloop = play((c) => {
+  tone(c, { freq: 620, to: 300, dur: 0.3, gain: 0.18 });
+  tone(c, { freq: 440, to: 220, start: 0.14, dur: 0.32, gain: 0.12 });
+});
+
+export const drumroll = play((c) => {
+  let t = 0;
+  for (let i = 0; i < 22; i++) {
+    noise(c, { start: t, dur: 0.07, gain: 0.05 + i * 0.009, from: 1500, to: 900 });
+    t += 0.09 - i * 0.0028;
+  }
+});
+
+export const crash = play((c) => {
+  noise(c, { dur: 1.4, gain: 0.22, from: 7000, to: 2500 });
+  tone(c, { freq: 110, to: 45, dur: 0.5, gain: 0.4 });
+});
+
+export const thud = play((c) => {
+  tone(c, { freq: 130, to: 45, dur: 0.3, gain: 0.16 });
+  noise(c, { dur: 0.25, gain: 0.05, from: 2500, to: 300 });
+});
+
+// One note per sticker, climbing two octaves however many stickers the chart has.
+export function rising(count: number, step: number, delay: number): void {
+  const c = audio();
+  if (!c) return;
+  const scale = [392, 440, 523, 587, 659, 784, 880, 1047, 1175, 1319];
+  for (let i = 0; i < count; i++) {
+    const k = Math.round((i * (scale.length - 1)) / Math.max(1, count - 1));
+    tone(c, { freq: scale[k], type: 'triangle', start: delay + i * step, dur: 0.12, gain: 0.13 });
+  }
+}

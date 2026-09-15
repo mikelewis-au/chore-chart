@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AppState, BoardMode, Chore, ChoreKind, CooldownId, DEFAULT_COOLDOWN, DEFAULT_TOILET, KID_AVATARS, KID_COLOURS, Kid, STICKERS, STICKER_GAP_MS, Sticker, ToiletChart, cooldownMs, dueOn, guessEmoji } from './models';
+import { AppState, BoardMode, Chore, ChoreKind, CoinChoice, CooldownId, DEFAULT_COOLDOWN, DEFAULT_DRY, DEFAULT_TOILET, DryChart, DryEntry, KID_AVATARS, KID_COLOURS, Kid, STICKERS, STICKER_GAP_MS, Sticker, ToiletChart, cooldownMs, dueOn, guessEmoji } from './models';
 import { addDays, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
@@ -22,12 +22,46 @@ export interface StickerCard {
   full: boolean;
 }
 
+export interface DryDay {
+  date: string;
+  sticker: string;
+}
+
+export interface DryRow {
+  days: DryDay[];
+  status: 'active' | 'future' | 'choosing' | CoinChoice;
+}
+
+export interface DryView {
+  rows: DryRow[];
+  current: number; // -1 once every row is full
+  perRow: number;
+  complete: boolean;
+  todayEntry: DryEntry | null;
+  canClaimToday: boolean;
+  canClaimYesterday: boolean;
+  canLogAccident: boolean;
+  // The newest entry's date when it's an accident, so Settings can offer to remove it.
+  lastAccident: string | null;
+  coins: number;
+  coinsNeeded: number;
+  ready: boolean;
+}
+
+export interface DryClaim {
+  date: string;
+  sticker: string;
+  row: number;
+  rowDone: boolean;
+  chartDone: boolean;
+}
+
 function uid(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
 function emptyState(): AppState {
-  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true, cooldown: DEFAULT_COOLDOWN, lockSettings: false, celebrated: {}, stickers: {}, lastStickerAt: {}, boardMode: {} };
+  return { version: 1, kids: [], activeKidId: null, done: {}, soundOn: true, cooldown: DEFAULT_COOLDOWN, lockSettings: false, celebrated: {}, stickers: {}, lastStickerAt: {}, boardMode: {}, dryCharts: {}, coins: {} };
 }
 
 function load(): AppState {
@@ -46,6 +80,8 @@ function load(): AppState {
       stickers: parsed.stickers ?? {},
       lastStickerAt: parsed.lastStickerAt ?? {},
       boardMode: parsed.boardMode ?? {},
+      dryCharts: parsed.dryCharts ?? {},
+      coins: parsed.coins ?? {},
     };
   } catch {
     return emptyState();
@@ -60,6 +96,28 @@ function prune<T>(rec: Record<string, T>): Record<string, T> {
 
 function omit<T>(rec: Record<string, T>, key: string): Record<string, T> {
   return Object.fromEntries(Object.entries(rec).filter(([k]) => k !== key));
+}
+
+const EMPTY_DRY: DryChart = { entries: {}, choices: {} };
+
+// Rows are worked out from the day log rather than stored, so removing an accident brings its washed row straight back.
+function layoutDry(chart: DryChart, perRow: number, rowCount: number): { full: DryDay[][]; current: DryDay[] } {
+  const full: DryDay[][] = [];
+  let current: DryDay[] = [];
+  for (const date of Object.keys(chart.entries).sort()) {
+    if (full.length === rowCount) break;
+    const entry = chart.entries[date];
+    if (entry.sticker) {
+      current.push({ date, sticker: entry.sticker });
+      if (current.length === perRow) {
+        full.push(current);
+        current = [];
+      }
+    }
+    // After the sticker, so an accident later on the day a row filled only restarts the next row.
+    if (entry.accident) current = [];
+  }
+  return { full, current };
 }
 
 function save(state: AppState): void {
@@ -147,6 +205,8 @@ export class ChoreStore {
         stickers: omit(s.stickers, id),
         lastStickerAt: omit(s.lastStickerAt, id),
         boardMode: omit(s.boardMode, id),
+        dryCharts: omit(s.dryCharts, id),
+        coins: omit(s.coins, id),
         activeKidId: s.activeKidId === id ? (kids[0]?.id ?? null) : s.activeKidId,
       };
     });
@@ -272,6 +332,101 @@ export class ChoreStore {
     this.state.update((s) => ({ ...s, stickers: omit(s.stickers, kidId), lastStickerAt: omit(s.lastStickerAt, kidId) }));
   }
 
+  dryView(kid: Kid, today: Date): DryView {
+    const { chart, perRow, rowCount, full, current } = this.dryLayout(kid);
+    const complete = full.length === rowCount;
+    const rows: DryRow[] = Array.from({ length: rowCount }, (_, i) => {
+      if (i < full.length) return { days: full[i], status: chart.choices[i] ?? 'choosing' };
+      return i === full.length ? { days: current, status: 'active' } : { days: [], status: 'future' };
+    });
+    const todayKey = toISODate(today);
+    const yesterdayKey = toISODate(addDays(today, -1));
+    const last = Object.keys(chart.entries).sort().at(-1) ?? null;
+    const started = (key: string) => !chart.startedOn || key >= chart.startedOn;
+    // Entries only ever go after the newest one, so the rows stay in date order even if the clock goes backwards.
+    const canClaimToday = !complete && started(todayKey) && (last === null || last < todayKey);
+    const coins = this.state().coins[kid.id] ?? 0;
+    const coinsNeeded = kid.toilet?.bigPrizeCoins ?? DEFAULT_DRY.bigPrizeCoins;
+    return {
+      rows,
+      current: complete ? -1 : full.length,
+      perRow,
+      complete,
+      todayEntry: chart.entries[todayKey] ?? null,
+      canClaimToday,
+      canClaimYesterday: canClaimToday && started(yesterdayKey) && (last === null || last < yesterdayKey),
+      canLogAccident: !complete && started(todayKey) && (last === null || last <= todayKey) && !chart.entries[todayKey]?.accident,
+      lastAccident: last && chart.entries[last].accident ? last : null,
+      coins,
+      coinsNeeded,
+      ready: coins >= coinsNeeded,
+    };
+  }
+
+  // Re-checks the view because the sticker sheet can stay open past midnight or while Settings changes the chart.
+  claimDryDay(kid: Kid, today: Date, day: Date, sticker?: string): DryClaim | 'unavailable' {
+    const view = this.dryView(kid, today);
+    const key = toISODate(day);
+    const allowed = key === toISODate(today) ? view.canClaimToday : key === toISODate(addDays(today, -1)) && view.canClaimYesterday;
+    if (!allowed) return 'unavailable';
+    const previous = view.rows[view.current].days.at(-1)?.sticker ?? view.rows[view.current - 1]?.days.at(-1)?.sticker;
+    const pool = STICKERS.filter((e) => e !== previous);
+    const entry = { sticker: sticker ?? pool[Math.floor(Math.random() * pool.length)], at: Date.now() };
+    this.addDryEntry(kid, view, key, entry);
+    const after = this.dryView(kid, today);
+    return { date: key, sticker: entry.sticker, row: view.current, rowDone: after.current !== view.current, chartDone: after.complete };
+  }
+
+  logAccident(kid: Kid, today: Date): { washed: number } | 'unavailable' {
+    const view = this.dryView(kid, today);
+    if (!view.canLogAccident) return 'unavailable';
+    const key = toISODate(today);
+    const existing = this.state().dryCharts[kid.id]?.entries[key];
+    this.addDryEntry(kid, view, key, { ...existing, accident: true, at: existing?.at ?? Date.now() });
+    return { washed: view.rows[view.current].days.length };
+  }
+
+  undoDryDay(kidId: string, date: string): void {
+    this.updateDry(kidId, (c) => (c.entries[date] && !c.entries[date].accident ? { ...c, entries: omit(c.entries, date) } : c));
+  }
+
+  removeAccident(kidId: string, date: string): void {
+    this.updateDry(kidId, (c) => {
+      const entry = c.entries[date];
+      if (!entry?.accident) return c;
+      return { ...c, entries: entry.sticker ? { ...c.entries, [date]: { sticker: entry.sticker, at: entry.at } } : omit(c.entries, date) };
+    });
+  }
+
+  // Only a full row with no choice yet, so a coin can't be counted twice.
+  chooseRow(kid: Kid, row: number, choice: CoinChoice): boolean {
+    const { chart, full } = this.dryLayout(kid);
+    if (row >= full.length || chart.choices[row]) return false;
+    this.state.update((s) => ({
+      ...s,
+      dryCharts: { ...s.dryCharts, [kid.id]: { ...chart, choices: { ...chart.choices, [row]: choice } } },
+      coins: choice === 'saved' ? { ...s.coins, [kid.id]: (s.coins[kid.id] ?? 0) + 1 } : s.coins,
+    }));
+    return true;
+  }
+
+  prizeGiven(kid: Kid): void {
+    const needed = kid.toilet?.bigPrizeCoins ?? DEFAULT_DRY.bigPrizeCoins;
+    this.state.update((s) => {
+      const coins = s.coins[kid.id] ?? 0;
+      return coins < needed ? s : { ...s, coins: { ...s.coins, [kid.id]: coins - needed } };
+    });
+  }
+
+  // Coins stay in the jar. If the old chart already has today, the new one starts tomorrow.
+  newDryChart(kidId: string, today: Date): void {
+    this.updateDry(kidId, (c) => {
+      const last = Object.keys(c.entries).sort().at(-1);
+      const todayKey = toISODate(today);
+      return { entries: {}, choices: {}, startedOn: last && last >= todayKey ? toISODate(addDays(today, 1)) : todayKey };
+    });
+  }
+
   seedExample(): void {
     const sam = this.addKid('Sam');
     const ava = this.addKid('Ava');
@@ -297,5 +452,26 @@ export class ChoreStore {
 
   private updateKid(id: string, fn: (k: Kid) => Kid): void {
     this.state.update((s) => ({ ...s, kids: s.kids.map((k) => (k.id === id ? fn(k) : k)) }));
+  }
+
+  private dryLayout(kid: Kid) {
+    const chart = this.state().dryCharts[kid.id] ?? EMPTY_DRY;
+    // The first entry fixes the chart's shape, so changing the settings only affects the next chart.
+    const fixed = Object.keys(chart.entries).length > 0;
+    const perRow = (fixed ? chart.perRow : undefined) ?? kid.toilet?.perRow ?? DEFAULT_DRY.perRow;
+    const rowCount = (fixed ? chart.rows : undefined) ?? kid.toilet?.rows ?? DEFAULT_DRY.rows;
+    return { chart, perRow, rowCount, ...layoutDry(chart, perRow, rowCount) };
+  }
+
+  private addDryEntry(kid: Kid, view: DryView, date: string, entry: DryEntry): void {
+    this.updateDry(kid.id, (c) => ({
+      ...c,
+      ...(Object.keys(c.entries).length ? {} : { perRow: view.perRow, rows: view.rows.length }),
+      entries: { ...c.entries, [date]: entry },
+    }));
+  }
+
+  private updateDry(kidId: string, fn: (c: DryChart) => DryChart): void {
+    this.state.update((s) => ({ ...s, dryCharts: { ...s.dryCharts, [kidId]: fn(s.dryCharts[kidId] ?? EMPTY_DRY) } }));
   }
 }

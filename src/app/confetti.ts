@@ -1,5 +1,6 @@
 import confetti from 'canvas-confetti';
-import { boing, boom, chime, fanfare, party, pop, sparkle, whoosh } from './sounds';
+import { isSprite } from './avatars';
+import { bloop, boing, boom, chime, coin, crash, drumroll, fanfare, party, pop, rising, sparkle, thud, whoosh } from './sounds';
 
 type Effect = (x: number, y: number) => void;
 
@@ -83,4 +84,75 @@ export function celebrate(sound: boolean): void {
   };
   frame();
   navigator.vibrate?.([60, 40, 60, 40, 120]);
+}
+
+export function splash(x: number, y: number, sound: boolean): void {
+  if (sound) bloop();
+  confetti({ particleCount: 10, spread: 70, startVelocity: 14, gravity: 1.1, scalar: 1.8, shapes: shapes(['💧'], 1.8), origin: origin(x, y), zIndex: Z });
+}
+
+export function coinDrop(x: number, y: number, sound: boolean): void {
+  if (sound) coin();
+  confetti({ particleCount: 26, spread: 70, startVelocity: 18, scalar: 0.8, colors: ['#fbbf24', '#f59e0b', '#fde68a'], origin: origin(x, y), zIndex: Z });
+}
+
+export function giftBurst(x: number, y: number, sound: boolean): void {
+  if (sound) party();
+  confetti({ particleCount: 14, spread: 90, startVelocity: 22, scalar: 2.2, shapes: shapes(['🎁', '🎉', '⭐'], 2.2), origin: origin(x, y), zIndex: Z });
+}
+
+export const FINALE_HOP_START_MS = 300;
+
+// Keeps the whole sticker wave inside the drum roll, however many stickers the chart has.
+export function finaleHopStep(count: number): number {
+  return Math.min(70, 1150 / Math.max(1, count));
+}
+
+// Sound and confetti for a finished dry days chart; the card's overlay uses the same timings. Returns a stop function.
+export function finale(sound: boolean, stickers: string[]): () => void {
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  const later = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+  const fire = (opts: confetti.Options) => confetti({ disableForReducedMotion: true, zIndex: Z, ...opts });
+  let running = true;
+
+  if (sound) {
+    drumroll();
+    rising(stickers.length, finaleHopStep(stickers.length) / 1000, FINALE_HOP_START_MS / 1000);
+  }
+  later(1600, () => sound && crash());
+  later(1800, () => {
+    if (sound) fanfare();
+    const end = Date.now() + 2400;
+    let lastBoom = 0;
+    const frame = () => {
+      if (!running) return;
+      const now = Date.now();
+      fire({ particleCount: 4, angle: 60, spread: 55, startVelocity: 55, origin: { x: 0, y: 0.85 } });
+      fire({ particleCount: 4, angle: 120, spread: 55, startVelocity: 55, origin: { x: 1, y: 0.85 } });
+      if (now - lastBoom > 380) {
+        lastBoom = now;
+        fire({ particleCount: 60, spread: 360, startVelocity: 26, gravity: 0.8, ticks: 90, origin: { x: 0.15 + Math.random() * 0.7, y: 0.1 + Math.random() * 0.3 } });
+        if (sound) thud();
+      }
+      if (now < end) requestAnimationFrame(frame);
+    };
+    frame();
+  });
+  later(3000, () => {
+    // Text shapes can't draw pixel sprites, so the rain uses the chart's emoji stickers only.
+    const emoji = [...new Set(stickers.filter((s) => !isSprite(s)))].slice(0, 6);
+    const rain = shapes(emoji.length ? emoji : ['⭐', '🌟', '🏆'], 3);
+    for (let i = 0; i < 24; i++) {
+      later(i * 70, () => fire({ particleCount: 3, angle: 270, spread: 30, startVelocity: 6, gravity: 0.5, ticks: 320, scalar: 3, drift: Math.random() - 0.5, shapes: rain, origin: { x: Math.random(), y: -0.05 } }));
+    }
+  });
+  later(4000, () => {
+    if (sound) party();
+    navigator.vibrate?.([80, 50, 80, 50, 80, 50, 300]);
+  });
+
+  return () => {
+    running = false;
+    timers.forEach(clearTimeout);
+  };
 }

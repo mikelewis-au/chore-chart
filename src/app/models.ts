@@ -29,17 +29,46 @@ export interface Kid {
   toilet?: ToiletChart;
 }
 
+export type ChartStyle = 'every-go' | 'dry-days';
+
 export interface ToiletChart {
   enabled: boolean;
   goal: number;
   reward: string;
+  // Optional so charts saved before dry days existed stay on a sticker for every go.
+  style?: ChartStyle;
+  perRow?: number;
+  rows?: number;
+  smallPrize?: string;
+  bigPrize?: string;
+  bigPrizeCoins?: number;
 }
 
 export const DEFAULT_TOILET: ToiletChart = { enabled: false, goal: 10, reward: '' };
+export const DEFAULT_DRY = { perRow: 5, rows: 4, bigPrizeCoins: 3 };
 
 export interface Sticker {
   emoji: string;
   at: number;
+}
+
+export interface DryEntry {
+  sticker?: string;
+  // Set alongside any sticker from earlier that day, so removing the accident gives the day back.
+  accident?: true;
+  at: number;
+}
+
+export type CoinChoice = 'spent' | 'saved';
+
+export interface DryChart {
+  entries: Record<string, DryEntry>; // ISO date -> that day
+  choices: Record<number, CoinChoice>; // full row index -> what its coin went on
+  // Copied from the settings on the first entry.
+  perRow?: number;
+  rows?: number;
+  // First day this chart counts, so starting a new chart can't count a day twice.
+  startedOn?: string;
 }
 
 export type BoardMode = 'chores' | 'toilet';
@@ -58,6 +87,9 @@ export interface AppState {
   stickers: Record<string, Sticker[]>;
   lastStickerAt: Record<string, number>;
   boardMode: Record<string, BoardMode>;
+  dryCharts: Record<string, DryChart>;
+  // Kid id -> saved coins, kept across charts.
+  coins: Record<string, number>;
 }
 
 export type CooldownId = 'off' | '1m' | '10m' | '1h' | 'once';

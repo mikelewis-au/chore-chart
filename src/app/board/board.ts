@@ -6,10 +6,11 @@ import { Chore, dueOn } from '../models';
 import { DAY_LABELS, DAY_NAMES, dayIndex, startOfWeek, toISODate, weekDates } from '../week';
 import { celebrate, cheer } from '../confetti';
 import { ToiletCard } from '../toilet/toilet-card';
+import { DryDaysCard } from '../toilet/dry-days-card';
 
 @Component({
   selector: 'app-board',
-  imports: [RouterLink, Avatar, ToiletCard],
+  imports: [RouterLink, Avatar, ToiletCard, DryDaysCard],
   templateUrl: './board.html',
   styleUrl: './board.scss',
 })

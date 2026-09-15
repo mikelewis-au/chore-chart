@@ -17,6 +17,7 @@ Live: https://mikelewis-au.github.io/chore-chart/
 - Optional grown-up lock: a times-table question guards Settings
 - Optional toilet chart per kid (off by default): a sticker for every go and a reward when the card is full, with at most one sticker every 10 minutes, a quick undo, and new cards started by a grown-up from Settings
 - Kids pick their own sticker from superhero, battle top, speedy hedgehog, pocket monster and mushroom kingdom packs, or tap Surprise me
+- Or switch a kid to a dry days chart: a sticker for each dry day, rows of 5 (up to 7) that an accident restarts, a coin for every full row to spend on a small prize or save towards a big one, and a drum roll, fireworks and fanfare when the whole chart is full
 - Mobile first, scales up to a two-column layout on iPad
 - Works offline once installed
 
