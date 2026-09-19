@@ -169,6 +169,9 @@
                   {{ confirming() === 'accident:' + k.id ? 'Tap again to remove it' : 'Remove accident on ' + dayName(date) }}
                 </button>
               }
+              <label>Already dry for: <strong>{{ backdate(k.id) }}</strong> {{ backdate(k.id) === 1 ? 'day' : 'days' }}</label>
+              <input type="range" min="1" [max]="catchUpDays" step="1" [value]="backdate(k.id)" (input)="setBackdate(k.id, +value($event))" />
+              <p class="tip">{{ backdateTip(k) }}</p>
               <button class="btn ghost" (click)="newDryChart(k)">
                 {{ confirming() === 'dry:' + k.id ? 'Tap again to start the next chart' : 'Start the next chart (' + (dry.complete ? dry.rows.length : dry.current) + '/' + dry.rows.length + ' rows)' }}
               </button>

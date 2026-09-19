@@ -1,9 +1,9 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { ChoreStore } from '../store';
+import { CATCH_UP_DAYS, ChoreStore } from '../store';
 import { AVATAR_GROUPS, CHORE_GROUPS, COOLDOWNS, ChoreKind, DEFAULT_DRY, KID_COLOURS, Kid, guessEmoji } from '../models';
 import { Avatar } from '../avatar/avatar';
 import { EmojiPicker } from '../emoji-picker/emoji-picker';
-import { fromISODate, startOfWeek } from '../week';
+import { addDays, fromISODate, startOfWeek, toISODate } from '../week';
 import { party } from '../sounds';
 
 type PickerTarget = { kind: 'avatar'; kidId: string } | { kind: 'chore'; kidId: string; choreId: string };
@@ -22,7 +22,11 @@ export class Settings {
   readonly cooldowns = COOLDOWNS;
   readonly cooldownHint = computed(() => COOLDOWNS.find((c) => c.id === this.store.cooldown())?.hint ?? '');
   readonly dryDefaults = DEFAULT_DRY;
+  readonly catchUpDays = CATCH_UP_DAYS;
   readonly today = new Date();
+
+  // How long the dry run has been going before the next chart starts, per kid. 1 is today only.
+  private readonly backdateFor = signal<Record<string, number>>({});
 
   readonly picker = signal<PickerTarget | null>(null);
 
@@ -114,8 +118,28 @@ export class Settings {
     this.confirmAction(`accident:${kid.id}`, () => this.store.removeAccident(kid.id, date));
   }
 
+  backdate(kidId: string): number {
+    return this.backdateFor()[kidId] ?? 1;
+  }
+
+  setBackdate(kidId: string, days: number): void {
+    this.backdateFor.update((b) => ({ ...b, [kidId]: days }));
+  }
+
+  backdateTip(kid: Kid): string {
+    const days = this.backdate(kid.id);
+    const start = this.store.nextChartStart(kid.id, this.today, days);
+    if (start === toISODate(this.today)) return 'The next chart starts today.';
+    // The last chart's days are off limits, so say so rather than promise a date that won't happen.
+    const capped = start > toISODate(addDays(this.today, -(days - 1))) ? ' The last chart already counted the days before that.' : '';
+    return `${this.dayName(start)} to today, so ${kid.name} can pick stickers for the days already done.${capped}`;
+  }
+
   newDryChart(kid: Kid): void {
-    this.confirmAction(`dry:${kid.id}`, () => this.store.newDryChart(kid.id, new Date()));
+    this.confirmAction(`dry:${kid.id}`, () => {
+      this.store.newDryChart(kid.id, new Date(), this.backdate(kid.id));
+      this.setBackdate(kid.id, 1);
+    });
   }
 
   dayName(iso: string): string {

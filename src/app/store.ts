@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
 import { AppState, BoardMode, Chore, ChoreKind, CoinChoice, CooldownId, DEFAULT_COOLDOWN, DEFAULT_DRY, DEFAULT_TOILET, DryChart, DryEntry, KID_AVATARS, KID_COLOURS, Kid, STICKERS, STICKER_GAP_MS, Sticker, ToiletChart, cooldownMs, dueOn, guessEmoji } from './models';
-import { addDays, startOfWeek, toISODate, weekDates } from './week';
+import { addDays, fromISODate, startOfWeek, toISODate, weekDates } from './week';
 
 const STORAGE_KEY = 'chore-chart.v1';
 
@@ -8,7 +8,7 @@ const STORAGE_KEY = 'chore-chart.v1';
 const UNLOCK_GRACE_MS = 5 * 60_000;
 
 // How far back catching up on missed dry days reaches: a week covers a holiday or a bad run of forgetting.
-const CATCH_UP_DAYS = 7;
+export const CATCH_UP_DAYS = 7;
 
 export interface WeekStats {
   total: number;
@@ -429,13 +429,21 @@ export class ChoreStore {
     });
   }
 
-  // Coins stay in the jar. If the old chart already has today, the new one starts tomorrow.
-  newDryChart(kidId: string, today: Date): void {
-    this.updateDry(kidId, (c) => {
-      const last = Object.keys(c.entries).sort().at(-1);
-      const todayKey = toISODate(today);
-      return { entries: {}, choices: {}, startedOn: last && last >= todayKey ? toISODate(addDays(today, 1)) : todayKey };
-    });
+  // The day a new chart would start on, given a run that began `daysAlready` days ago counting today.
+  // Settings shows this, so what a grown-up is told matches what they get.
+  nextChartStart(kidId: string, today: Date, daysAlready = 1): string {
+    const back = Math.min(Math.max(daysAlready, 1), CATCH_UP_DAYS) - 1;
+    const wanted = toISODate(addDays(today, -back));
+    // Never reaches back over a day the old chart already turned into a coin.
+    const last = Object.keys((this.state().dryCharts[kidId] ?? EMPTY_DRY).entries).sort().at(-1);
+    const floor = last ? toISODate(addDays(fromISODate(last), 1)) : null;
+    return floor && floor > wanted ? floor : wanted;
+  }
+
+  // Coins stay in the jar.
+  newDryChart(kidId: string, today: Date, daysAlready = 1): void {
+    const startedOn = this.nextChartStart(kidId, today, daysAlready);
+    this.updateDry(kidId, () => ({ entries: {}, choices: {}, startedOn }));
   }
 
   seedExample(): void {
