@@ -45,6 +45,27 @@
   @if (v.canClaimYesterday) {
     <button class="yesterday" (click)="tapYesterday()">Forgot last night? Pick yesterday's sticker ⭐</button>
   }
+  @if (offerCatchUp()) {
+    <button class="catch-up-ask" (click)="tapCatchUp()">Missed a few days? Ask a grown-up 🔒</button>
+  }
+  @if (catchUp(); as c) {
+    <section class="catching-up">
+      <div class="catch-head">
+        <strong>Catching up</strong>
+        <span>{{ c.minutesLeft }} min left</span>
+      </div>
+      @if (chips().length) {
+        <div class="chips">
+          @for (chip of chips(); track chip.date) {
+            <button class="chip" (click)="tapMissed(chip.date)">{{ chip.label }} ⭐</button>
+          }
+        </div>
+      } @else {
+        <p class="caught-up">All caught up! 🎉</p>
+      }
+      <button class="catch-done" (click)="endCatchUp()">All done</button>
+    </section>
+  }
 }
 @if (note(); as text) {
   <p class="note" role="status">{{ text }}</p>
@@ -104,9 +125,9 @@
   </div>
 }
 
-@if (pickingDay(); as day) {
+@if (pickingDate()) {
   <app-emoji-picker
-    [title]="day === 'today' ? 'Pick your sticker!' : 'Pick a sticker for yesterday'"
+    [title]="pickTitle()"
     [groups]="stickerGroups"
     [searchable]="false"
     [big]="true"
@@ -116,6 +137,13 @@
   >
     <button class="surprise" (click)="pick()">🎲 Surprise me!</button>
   </app-emoji-picker>
+}
+
+@if (unlocking()) {
+  <div class="backdrop" (click)="closeSheet()"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Grown-ups only">
+    <app-lock [inline]="true" (solved)="startCatchUp()" (cancelled)="closeSheet()" />
+  </div>
 }
 
 @if (confirmingAccident()) {

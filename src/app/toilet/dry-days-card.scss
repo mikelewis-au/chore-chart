@@ -200,6 +200,80 @@
   cursor: pointer;
 }
 
+.catch-up-ask {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: -0.3rem 0 0.9rem;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.catching-up {
+  margin: -0.3rem 0 0.9rem;
+  padding: 0.7rem;
+  border: 2px dashed color-mix(in srgb, var(--kid) 45%, white);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--kid) 6%, white);
+}
+
+.catch-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  font-weight: 800;
+
+  span {
+    color: var(--muted);
+    font-size: 0.85rem;
+    // Fixed-width digits so the countdown ticking down can't jiggle the heading.
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  min-height: 48px;
+  padding: 0.4rem 0.9rem;
+  border: 2px solid color-mix(in srgb, var(--kid) 55%, white);
+  border-radius: 999px;
+  background: var(--card);
+  color: color-mix(in srgb, var(--kid) 75%, black);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.caught-up {
+  margin: 0;
+  font-weight: 800;
+  text-align: center;
+}
+
+.catch-done {
+  display: block;
+  margin: 0.6rem 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .note {
   margin: -0.2rem 0 0.9rem;
   text-align: center;

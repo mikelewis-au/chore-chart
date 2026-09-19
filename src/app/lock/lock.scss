@@ -10,6 +10,11 @@
   flex-direction: column;
   gap: 0.7rem;
 
+  &.inline {
+    max-width: none;
+    margin: 0;
+  }
+
   .icon {
     font-size: 3rem;
     line-height: 1;

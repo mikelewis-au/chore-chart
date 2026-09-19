@@ -7,6 +7,9 @@ const STORAGE_KEY = 'chore-chart.v1';
 // A grown-up who answers the maths question can come and go for this long before being asked again.
 const UNLOCK_GRACE_MS = 5 * 60_000;
 
+// How far back catching up on missed dry days reaches: a week covers a holiday or a bad run of forgetting.
+const CATCH_UP_DAYS = 7;
+
 export interface WeekStats {
   total: number;
   done: number;
@@ -41,6 +44,8 @@ export interface DryView {
   canClaimToday: boolean;
   canClaimYesterday: boolean;
   canLogAccident: boolean;
+  // Past days in the catch-up window with nothing logged at all, oldest first.
+  missedDays: string[];
   // The newest entry's date when it's an accident, so Settings can offer to remove it.
   lastAccident: string | null;
   coins: number;
@@ -345,6 +350,7 @@ export class ChoreStore {
     const started = (key: string) => !chart.startedOn || key >= chart.startedOn;
     // Entries only ever go after the newest one, so the rows stay in date order even if the clock goes backwards.
     const canClaimToday = !complete && started(todayKey) && (last === null || last < todayKey);
+    const recent = Array.from({ length: CATCH_UP_DAYS }, (_, i) => toISODate(addDays(today, i - CATCH_UP_DAYS)));
     const coins = this.state().coins[kid.id] ?? 0;
     const coinsNeeded = kid.toilet?.bigPrizeCoins ?? DEFAULT_DRY.bigPrizeCoins;
     return {
@@ -356,6 +362,8 @@ export class ChoreStore {
       canClaimToday,
       canClaimYesterday: canClaimToday && started(yesterdayKey) && (last === null || last < yesterdayKey),
       canLogAccident: !complete && started(todayKey) && (last === null || last <= todayKey) && !chart.entries[todayKey]?.accident,
+      // Empty days rather than days after the newest entry, so the list holds still while they're filled in any order.
+      missedDays: complete ? [] : recent.filter((key) => started(key) && !chart.entries[key]),
       lastAccident: last && chart.entries[last].accident ? last : null,
       coins,
       coinsNeeded,
@@ -367,10 +375,13 @@ export class ChoreStore {
   claimDryDay(kid: Kid, today: Date, day: Date, sticker?: string): DryClaim | 'unavailable' {
     const view = this.dryView(kid, today);
     const key = toISODate(day);
-    const allowed = key === toISODate(today) ? view.canClaimToday : key === toISODate(addDays(today, -1)) && view.canClaimYesterday;
+    // A past day only has to be empty and in range. Whether a grown-up has opened catch-up is the card's business.
+    const allowed = key === toISODate(today) ? view.canClaimToday : view.missedDays.includes(key);
     if (!allowed) return 'unavailable';
-    const previous = view.rows[view.current].days.at(-1)?.sticker ?? view.rows[view.current - 1]?.days.at(-1)?.sticker;
-    const pool = STICKERS.filter((e) => e !== previous);
+    const entries = this.state().dryCharts[kid.id]?.entries ?? {};
+    // The day before this one, which is what a backfilled day lands next to on the chart.
+    const earlier = Object.keys(entries).filter((d) => d < key).sort().at(-1);
+    const pool = STICKERS.filter((e) => e !== (earlier ? entries[earlier].sticker : undefined));
     const entry = { sticker: sticker ?? pool[Math.floor(Math.random() * pool.length)], at: Date.now() };
     this.addDryEntry(kid, view, key, entry);
     const after = this.dryView(kid, today);

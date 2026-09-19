@@ -4,19 +4,21 @@ import { CoinChoice, Kid, STICKER_GROUPS } from '../models';
 import { FINALE_HOP_START_MS, celebrate, cheer, coinDrop, finale, finaleHopStep, giftBurst, splash } from '../confetti';
 import { Avatar } from '../avatar/avatar';
 import { EmojiPicker } from '../emoji-picker/emoji-picker';
-import { DAY_LABELS, addDays, dayIndex, fromISODate, toISODate } from '../week';
+import { Lock } from '../lock/lock';
+import { DAY_LABELS, DAY_NAMES, addDays, dayIndex, fromISODate, toISODate } from '../week';
 
 const UNDO_MS = 5000;
 const NOTE_MS = 3000;
 const WASH_MS = 1100;
 const CHOICE_DELAY_MS = 2000;
+const CATCH_UP_MS = 5 * 60_000;
 
-type Sheet = { kind: 'stickers'; day: 'today' | 'yesterday' } | { kind: 'accident' } | { kind: 'choice'; row: number };
+type Sheet = { kind: 'stickers'; date: string } | { kind: 'accident' } | { kind: 'choice'; row: number } | { kind: 'unlock' };
 type Undo = { kind: 'sticker' | 'accident'; date: string };
 
 @Component({
   selector: 'app-dry-days-card',
-  imports: [Avatar, EmojiPicker],
+  imports: [Avatar, EmojiPicker, Lock],
   templateUrl: './dry-days-card.html',
   styleUrl: './dry-days-card.scss',
 })
@@ -49,12 +51,22 @@ export class DryDaysCard {
   private readonly noteFor = signal<{ kidId: string; text: string } | null>(null);
   private readonly washFor = signal<{ kidId: string; row: number; days: DryDay[] } | null>(null);
   private readonly finaleFor = signal<{ kidId: string; row: number } | null>(null);
+  // Not persisted, so a reload closes the window a grown-up opened, like the settings unlock.
+  private readonly catchUpFor = signal<{ kidId: string; until: number } | null>(null);
+  private readonly nowMs = signal(Date.now());
 
   readonly sheet = computed(() => this.mine(this.sheetFor())?.sheet ?? null);
-  readonly pickingDay = computed(() => {
+  readonly pickingDate = computed(() => {
     const s = this.sheet();
-    return s?.kind === 'stickers' ? s.day : null;
+    return s?.kind === 'stickers' ? s.date : null;
   });
+  readonly pickTitle = computed(() => {
+    const date = this.pickingDate();
+    if (date === toISODate(this.today())) return 'Pick your sticker!';
+    if (date === toISODate(addDays(this.today(), -1))) return 'Pick a sticker for yesterday';
+    return date ? `Pick a sticker for ${DAY_NAMES[dayIndex(fromISODate(date))]}` : '';
+  });
+  readonly unlocking = computed(() => this.sheet()?.kind === 'unlock');
   readonly confirmingAccident = computed(() => this.sheet()?.kind === 'accident');
   readonly choiceRow = computed(() => {
     const s = this.sheet();
@@ -63,6 +75,20 @@ export class DryDaysCard {
   readonly undoable = computed(() => this.mine(this.undoFor())?.undo ?? null);
   readonly note = computed(() => this.mine(this.noteFor())?.text ?? null);
   readonly finaleRow = computed(() => this.mine(this.finaleFor())?.row ?? null);
+
+  readonly catchUp = computed(() => {
+    const armed = this.mine(this.catchUpFor());
+    const left = armed ? armed.until - this.nowMs() : 0;
+    return left > 0 ? { minutesLeft: Math.ceil(left / 60_000) } : null;
+  });
+  readonly chips = computed(() =>
+    this.catchUp() ? this.view().missedDays.map((date) => ({ date, label: DAY_LABELS[dayIndex(fromISODate(date))] })) : [],
+  );
+  // Yesterday has its own button, so one forgotten night doesn't need a grown-up.
+  readonly offerCatchUp = computed(() => {
+    const v = this.view();
+    return !this.catchUp() && v.missedDays.length > (v.canClaimYesterday ? 1 : 0);
+  });
 
   readonly grid = computed(() => {
     const v = this.view();
@@ -92,11 +118,13 @@ export class DryDaysCard {
   private noteTimer: ReturnType<typeof setTimeout> | undefined;
   private washTimer: ReturnType<typeof setTimeout> | undefined;
   private choiceTimer: ReturnType<typeof setTimeout> | undefined;
+  private tickTimer: ReturnType<typeof setInterval> | undefined;
   private stopFinale: (() => void) | undefined;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       [this.undoTimer, this.noteTimer, this.washTimer, this.choiceTimer].forEach(clearTimeout);
+      clearInterval(this.tickTimer);
       this.stopFinale?.();
     });
   }
@@ -104,16 +132,44 @@ export class DryDaysCard {
   tapDry(): void {
     const v = this.view();
     if (v.canClaimToday) {
-      this.tap = null;
-      this.openSheet({ kind: 'stickers', day: 'today' });
+      this.tapMissed(toISODate(this.today()));
     } else {
       this.say(v.todayEntry?.accident ? 'A fresh try starts tomorrow 🌅' : "Today's sticker is on. See you tomorrow! 🌙");
     }
   }
 
   tapYesterday(): void {
+    this.tapMissed(toISODate(addDays(this.today(), -1)));
+  }
+
+  tapMissed(date: string): void {
     this.tap = null;
-    this.openSheet({ kind: 'stickers', day: 'yesterday' });
+    this.openSheet({ kind: 'stickers', date });
+  }
+
+  tapCatchUp(): void {
+    this.openSheet({ kind: 'unlock' });
+  }
+
+  startCatchUp(): void {
+    this.closeSheet();
+    this.nowMs.set(Date.now());
+    this.catchUpFor.set({ kidId: this.kid().id, until: Date.now() + CATCH_UP_MS });
+    clearInterval(this.tickTimer);
+    this.tickTimer = setInterval(() => {
+      this.nowMs.set(Date.now());
+      const armed = this.catchUpFor();
+      if (!armed || armed.until <= Date.now()) this.endCatchUp();
+    }, 1000);
+  }
+
+  endCatchUp(): void {
+    this.catchUpFor.set(null);
+    clearInterval(this.tickTimer);
+    this.tickTimer = undefined;
+    // A picker left open on a past day would outlive the window it was opened in.
+    const date = this.pickingDate();
+    if (date && date !== toISODate(this.today())) this.closeSheet();
   }
 
   tapAccident(): void {
@@ -136,24 +192,29 @@ export class DryDaysCard {
 
   // No emoji means Surprise me.
   pick(emoji?: string): void {
-    const day = this.pickingDay();
-    if (!day) return;
+    const date = this.pickingDate();
+    if (!date) return;
     this.closeSheet();
     const kid = this.kid();
     const today = this.today();
-    const result = this.store.claimDryDay(kid, today, day === 'today' ? today : addDays(today, -1), emoji);
+    const result = this.store.claimDryDay(kid, today, fromISODate(date), emoji);
     if (result === 'unavailable') return;
 
     const sound = this.store.soundOn();
     if (result.chartDone) {
+      this.endCatchUp();
       this.startFinale(result.row);
     } else if (result.rowDone) {
       // No undo on this one, so the row celebration can't be replayed.
       celebrate(sound);
-      clearTimeout(this.choiceTimer);
-      this.choiceTimer = setTimeout(() => {
-        if (this.kid().id === kid.id) this.openChoice(result.row);
-      }, CHOICE_DELAY_MS);
+      // Mid catch-up the kid is still tapping days, so the coin sheet would land under their finger.
+      // The row's cap keeps offering the choice whenever they're ready.
+      if (!this.catchUp()) {
+        clearTimeout(this.choiceTimer);
+        this.choiceTimer = setTimeout(() => {
+          if (this.kid().id === kid.id) this.openChoice(result.row);
+        }, CHOICE_DELAY_MS);
+      }
     } else {
       this.offerUndo({ kind: 'sticker', date: result.date });
       // Same cooldown as chores, so undoing and picking again doesn't replay the cheer.
@@ -220,6 +281,10 @@ export class DryDaysCard {
   }
 
   private startFinale(row: number): void {
+    // Catching up lands two days in quick succession, so the day before's undo can still be on screen.
+    // Left there it would un-complete the chart mid-finale.
+    this.undoFor.set(null);
+    clearTimeout(this.undoTimer);
     const stickers = this.view().rows.flatMap((r) => r.days.map((d) => d.sticker));
     this.stopFinale?.();
     this.stopFinale = finale(this.store.soundOn(), stickers);

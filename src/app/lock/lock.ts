@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 interface Question {
@@ -17,7 +17,7 @@ function question(): Question {
   selector: 'app-lock',
   imports: [RouterLink],
   template: `
-    <section class="card lock" [class.shake]="shaking()">
+    <section class="lock" [class.card]="!inline()" [class.inline]="inline()" [class.shake]="shaking()">
       <div class="icon">🔒</div>
       <h1>Grown-ups only</h1>
       <p class="ask">Answer to unlock</p>
@@ -36,13 +36,20 @@ function question(): Question {
       @if (wrong()) {
         <p class="nope">Not quite — here's a new one.</p>
       }
-      <a routerLink="/" class="btn ghost">Back to chores</a>
+      @if (inline()) {
+        <button class="btn ghost" (click)="cancelled.emit()">Not now</button>
+      } @else {
+        <a routerLink="/" class="btn ghost">Back to chores</a>
+      }
     </section>
   `,
   styleUrl: './lock.scss',
 })
 export class Lock {
+  // Set when the lock sits in a sheet rather than filling the page.
+  readonly inline = input(false);
   readonly solved = output<void>();
+  readonly cancelled = output<void>();
 
   readonly sum = signal(question());
   readonly entry = signal('');
