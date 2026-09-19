@@ -176,6 +176,9 @@
                 {{ confirming() === 'dry:' + k.id ? 'Tap again to start the next chart' : 'Start the next chart (' + (dry.complete ? dry.rows.length : dry.current) + '/' + dry.rows.length + ' rows)' }}
               </button>
             </div>
+            @if (dry.missedDays.length) {
+              <p class="tip catch-up-hint">{{ catchUpHint(k, dry.missedDays.length) }}</p>
+            }
             <p class="tip">Coins stay in the jar when a new chart starts.</p>
           } @else {
             <label>Card reward</label>

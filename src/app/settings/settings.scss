@@ -349,6 +349,12 @@ h3 {
   margin: 0.6rem 0 0;
 }
 
+// Reports what just happened, so it has to carry more than the tips explaining what things do.
+.catch-up-hint {
+  color: var(--kid, var(--accent));
+  font-weight: 800;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

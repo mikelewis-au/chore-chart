@@ -135,6 +135,12 @@ export class Settings {
     return `${this.dayName(start)} to today, so ${kid.name} can pick stickers for the days already done.${capped}`;
   }
 
+  // Starting a backdated chart resets the slider, so without this nothing on screen shows it worked.
+  catchUpHint(kid: Kid, days: number): string {
+    if (!days) return '';
+    return `${days} earlier ${days === 1 ? 'day has' : 'days have'} no sticker yet. ${kid.name} can pick ${days === 1 ? 'it' : 'them'} on the board.`;
+  }
+
   newDryChart(kid: Kid): void {
     this.confirmAction(`dry:${kid.id}`, () => {
       this.store.newDryChart(kid.id, new Date(), this.backdate(kid.id));

@@ -205,7 +205,8 @@
   width: 100%;
   min-height: 44px;
   margin: -0.3rem 0 0.9rem;
-  border: 0;
+  // Dashed like the yesterday button so it reads as tappable, but grey to sit below it.
+  border: 2px dashed #ded5ee;
   border-radius: 14px;
   background: transparent;
   color: var(--muted);
